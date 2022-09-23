@@ -1,0 +1,2 @@
+This Notebook was initially created as a bare-bones proof of concept to confirm whether or not the project was possible.
+For those that want to immediately experiment on text-generation, this is for you as it contains strictly just the code to scrape and train our dataset.
