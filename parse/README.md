@@ -1,0 +1,1 @@
+Parsing component responsible for converting text generated results into JSON
