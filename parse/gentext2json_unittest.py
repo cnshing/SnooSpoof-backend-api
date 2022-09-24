@@ -58,18 +58,6 @@ class ValidJSON:
     def __str__(self):
         return self.json()
 
-
-
-IS_OC = "is_original_content"
-SPOILER = "spoiler"
-NSFW = "over_18"
-EDIT = "edited"
-TYPE = "post"
-SUBR = "subreddit"
-PROMPT = "prompt"
-URL = "url"
-RESP = "response"
-
 class TestGenText2JsonMethods(unittest.TestCase):
     """Ensures validity of text generation so output does not affect our front-end service upstream
     """
