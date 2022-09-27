@@ -2,6 +2,7 @@
 Parsing component responsible for converting text generated results into JSON
 """
 import unittest
+import gentext2json
 import json
 from collections import OrderedDict
 
@@ -61,9 +62,20 @@ class ValidJSON:
 class TestGenText2JsonMethods(unittest.TestCase):
     """Ensures validity of text generation so output does not affect our front-end service upstream
     """
-    def test_convert(self):
-        """For now, just the JSON classes have been created to create test cases quicker.
+    def test_simple_convert(self):
+        """Simple test where the tested text is not too long and follows what the syntax we expect
         """
+        test_text = """
+is_original_content: false
+spoiler: true
+over_18: false
+edited: true
+post: comment
+subreddit: reddit
+prompt: This is a standard prompt
+url: None
+response: This is a standard response
+"""
         valid_text = ValidJSON(IS_OC, SPOILER, NSFW, EDIT, TYPE, SUBR, PROMPT, URL, RESP)
         valid_text.set_tags("true", SPOILER, EDIT)
         valid_text.set_tags("false", IS_OC, NSFW)
@@ -72,6 +84,11 @@ class TestGenText2JsonMethods(unittest.TestCase):
         valid_text[PROMPT] = "This is a standard prompt"
         valid_text[URL] = "None"
         valid_text[RESP] = "This is a standard response"
+
+        test_json = gentext2json.convert(test_text, [IS_OC, SPOILER, NSFW, EDIT, TYPE, SUBR, PROMPT, URL, RESP])
+        self.assertEqual(test_json, valid_text.json())
+
+
 
 
 if __name__ == '__main__':

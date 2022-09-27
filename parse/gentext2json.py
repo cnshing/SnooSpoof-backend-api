@@ -1,6 +1,7 @@
 """
 Responsible for converting a text generated result into JSON
 """
+from json import dumps
 
 def convert(text, tags):
     """Parses a generated text into a JSON "object" where the text is
@@ -36,6 +37,10 @@ def convert(text, tags):
     #The resulting variables are the starting and ending positions
     # of all the tags which can extracted into each key-value pair
     for tag, start, end in zip(tags, starting, ending):
-        json[tag] = text[start:end]
 
-    return json
+        #Our text generation adds a semicolin and a newline that makes
+        #the text more readable but isn't a true representation of our text
+        skip_semicolon = trim_newline = 1
+        json[tag] = text[start+skip_semicolon:end-trim_newline]
+
+    return dumps(json)
