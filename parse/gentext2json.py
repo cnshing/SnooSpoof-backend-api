@@ -38,6 +38,8 @@ def convert(text, tags):
     # of all the tags which can extracted into each key-value pair
     for tag, start, end in zip(tags, starting, ending):
 
+        if start > end:
+            raise IndexError(f"{tag} is not in the correct order")
         #Our text generation adds a semicolin and a newline that makes
         #the text more readable but isn't a true representation of our text
         skip_semicolon = trim_newline = 1
