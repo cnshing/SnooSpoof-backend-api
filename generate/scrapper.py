@@ -43,13 +43,27 @@ class PRAWExtension():
         elif author != ids != None:
             raise ValueError('Cannot search for both authors and ids at the same time')
 
-    def is_comment(self, fullname):
-        """Given a post's fullname, Return True if a post is a comment"""
-        return fullname.startswith("t1")
+    def is_comment(self, fullname: str):
+        """Check to see if a fullname is a comment
 
-    def is_submission(self, fullname):
-        """Given a post's fullname, Return True if a post is a submission"""
-        return fullname.startswith("t3")
+        Args:
+            fullname (str): A post's fullname, characterized by a "t3_" or "t1_" prefix
+
+        Returns:
+            bool: True if the post is a comment
+        """
+        return fullname.startswith("t1_")
+
+    def is_submission(self, fullname: str):
+        """Check to see if a fullname is a submission
+
+        Args:
+            fullname (str): A post's fullname, characterized by a "t3_" or "t1_" prefix
+
+        Returns:
+            bool: True if the post is a submission
+        """
+        return fullname.startswith("t3_")
 
     def search_submissions(self,
                         sort: str = 'new',
