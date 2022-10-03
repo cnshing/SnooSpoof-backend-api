@@ -2,8 +2,9 @@
 Responsible for converting a text generated result into JSON
 """
 from json import dumps
+from collections.abc import Iterable
 
-def convert(text, tags):
+def convert(text: str, tags: Iterable[str]) -> str:
     """Parses a generated text into a JSON "object" where the text is
 
     "tag1: str1

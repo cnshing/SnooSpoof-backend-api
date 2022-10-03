@@ -1,6 +1,7 @@
 """Allows collection of dataset to happen
 """
 from collections.abc import Iterable, Callable
+from typing import Any
 from operator import attrgetter
 import praw
 
@@ -56,8 +57,8 @@ class PRAWExtension():
         return [self._get(listing, attr) for listing in request if filter_fn(listing)]
 
     def _check_author_ids(self,
-                        author: str = None,
-                        ids: Iterable[str] = None) -> None:
+                        author: str | None = None,
+                        ids: Iterable[str] | None = None) -> None:
         """Prevents situations where an indecision is made between
         searching for authors or searching for ids
 
@@ -98,9 +99,9 @@ class PRAWExtension():
 
     def search_submissions(self,
                         sort: str = 'new',
-                        tags: Iterable[str] = None,
-                        author: str = None,
-                        ids: Iterable[str] = None,
+                        tags: Iterable[str] | None = None,
+                        author: str | None = None,
+                        ids: Iterable[str] | None = None,
                         filter_fn: Callable[[], bool]=lambda default: True,
                         **kawrgs) -> list[dict[str, ]]:
         """Searches for submissions by IDs or author, returning the metadata in tags.
@@ -129,9 +130,9 @@ class PRAWExtension():
 
     def search_comments(self,
                     sort: str = 'new',
-                    tags: Iterable[str] = None,
-                    author: str = None,
-                    ids: Iterable[str] = None,
+                    tags: Iterable[str] | None = None,
+                    author: str | None = None,
+                    ids: Iterable[str] | None = None,
                     filter_fn: Callable[[], bool]=lambda default: True,
                     **kawrgs) -> list[dict[str, ]]:
         """Searches for comments by IDs or author. returning the metadata in tags.
@@ -172,10 +173,10 @@ class PRAWExtension():
         return seperate(self.is_submission), seperate(self.is_comment)
 
     def search_parents(self,
-                    author: str = None,
-                    parent_ids: Iterable[str] = None,
-                    submission_tags: Iterable[str] = None,
-                    comment_tags:  Iterable[str] = None) -> dict[str, dict[str, ]]:
+                    author: str | None = None,
+                    parent_ids: Iterable[str] | None = None,
+                    submission_tags: Iterable[str] | None = None,
+                    comment_tags:  Iterable[str] | None = None) -> dict[str, dict[str, ]]:
         """Search the parents of a comment by author or ID. When no IDs are given,
         search by the author's comments instead, following the same parameters
         as search_comments().
