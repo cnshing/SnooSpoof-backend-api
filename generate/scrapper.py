@@ -22,7 +22,7 @@ class PRAWExtension():
 
     def _get(self,
             listing,
-            attr: Iterable) -> dict[str, ]:
+            attr: Iterable | None) -> dict[str, ]:
         """
         Get a listing's attributes as a dictionary.
 
@@ -34,7 +34,9 @@ class PRAWExtension():
             dict[str, ]: An attribute keyed by their attribute name
             and valued by the attribute's value
         """
-        values = attrgetter(*attr)(listing)
+        if attr is None:
+            return vars(listing)
+        values = (getattr(listing, attribute) for attribute in attr)
         return dict(zip(attr, values))
 
     def _search(self,
@@ -72,7 +74,7 @@ class PRAWExtension():
         """
         if author == ids == None:
             raise ValueError('Either an reddit username or ids be specified')
-        elif author != ids != None:
+        elif author is not None and ids is not None:
             raise ValueError('Cannot search for both authors and ids at the same time')
 
     def is_comment(self, fullname: str) -> bool:
