@@ -3,6 +3,7 @@ The underlying implementation that fetches our data is PRAW, which we assume is 
 Therefore we will only test everything else, including the type of data and expected behavior
 of our scrapper. 
 """
+from types import SimpleNamespace
 from collections.abc import Iterable
 from random import sample, randrange
 import unittest
@@ -25,7 +26,7 @@ search_parents = PRAW.search_parents
 search_comments = PRAW.search_comments
 
 def randomSublist(lst: list):
-    random_length = 0
+    random_length = randrange(start=1, stop=len(lst))
     return sample(lst, random_length)
 
 
@@ -65,16 +66,22 @@ class TestAuthorIdsCheck(unittest.TestCase):
         self.run_ValueErrorTest(search_comments)
 
 class ValidFilter():
-    def __init__(self, filter_fn, iterable: Iterable):
-        self.original = iterable
+    def __init__(self, filter_fn, search_result: Iterable[dict[str,]]):
+        self.original = search_result
         self.filter_fn = filter_fn
+        #We convert our iterable into its own namespace as our functions in filter_fn
+        #also use attributes to compare object data
+        self.attributes = map(lambda unpack: SimpleNamespace(**unpack), search_result)
+
+        #Even though the lambda function uses attributes, our end compared results are
+        #dictionaries, and so a reconvert to its list-dictionary form is neccesary
+        self.filtered = map(vars, filter(filter_fn, self.attributes))
         
     def __eq__(self, other):
-        filtered = filter(self.filter_fn, self.original)
-        return all(valid == test for valid, test in zip(filtered, other))
+        return all(valid == test for valid, test in zip(self.filtered, other))
 
     def __str__(self):
-        return str(list(filter(self.filter_fn, self.original)))
+        return str(list(self.filtered))
 
 class TestFilter(unittest.TestCase):
 
@@ -85,21 +92,35 @@ class TestFilter(unittest.TestCase):
     def alwaysFalse(self, item):
         return False
     
+    def idsContainLetteri(self, item):
+        return 'i' in item.name
+
+    def beforeCertainTime(self, item):
+        chosen_time = 1664698700
+        return item.created < chosen_time
+
     def run_filterTest(self, filter_fn, **kawrgs):
         searches = [search_submissions, search_comments]
         ids = [selectRandomSubmissions(), selectRandomComments()]
-        for search, id in zip(searches, ids):  
-            print(id)
+        for search, id in zip(searches, ids): 
             posts = search(ids=id, **kawrgs)
             filtered = search(filter_fn=filter_fn, ids=id, **kawrgs)
-            valid = ValidFilter(filter_fn=filter_fn, iterable=posts)
+            valid = ValidFilter(search_result=posts, filter_fn=filter_fn)
             self.assertEqual(valid, filtered)
-            print(valid)
-            print(filtered)
+
 
 
     def test_alwaysTrue(self):
-        self.run_filterTest(self.alwaysTrue, tags=['fullname'])
+        self.run_filterTest(self.alwaysTrue)
+
+    def test_alwaysFalse(self):
+       self.run_filterTest(self.alwaysFalse)
+
+    def test_idsContainLetteri(self):
+        self.run_filterTest(self.idsContainLetteri)
+    
+    def test_beforeCertainTime(self):
+        self.run_filterTest(self.beforeCertainTime)
 
 if __name__ == '__main__':
     unittest.main()
