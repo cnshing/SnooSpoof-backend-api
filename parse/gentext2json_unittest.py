@@ -106,7 +106,7 @@ url: None
 response: This is a standard response
 """
         with self.assertRaises(IndexError,
-        "over_18 and spoiler is swapped, thus the order is mismatched"):
+        msg="over_18 and spoiler is swapped, thus the order is mismatched"):
             gentext2json.convert(test_text, tags)
 
     def test_real_text(self):
