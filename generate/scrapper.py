@@ -1,8 +1,6 @@
 """Allows collection of dataset to happen
 """
 from collections.abc import Iterable, Callable
-from typing import Any
-from operator import attrgetter
 import praw
 
 
@@ -72,9 +70,11 @@ class PRAWExtension():
             ValueError: Neither author and ids are defined
             ValueError: Both authors and ids are defined
         """
-        if author == ids == None:
+        missing_ids = not ids
+        missing_author = not author
+        if missing_ids and missing_author:
             raise ValueError('Either an reddit username or ids be specified')
-        elif author is not None and ids is not None:
+        elif not missing_ids and not missing_author:
             raise ValueError('Cannot search for both authors and ids at the same time')
 
     def is_comment(self, fullname: str) -> bool:
