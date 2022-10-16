@@ -5,6 +5,7 @@ from json import dumps, loads
 from collections.abc import Iterable
 from .util import line_delimited_text
 
+
 def gentext2dict(text: str, tags: Iterable[str]) -> dict[str, str]:
     """Parses a generated text into a dictionary where the text is
 
@@ -95,8 +96,8 @@ def dict2gentext(**kwargs: str) -> str:
     "
     """
     return line_delimited_text(kwargs,
-                                lambda tag: f"{tag}: {kwargs[tag]}",
-                                lambda default: True)
+                               lambda tag: f"{tag}: {kwargs[tag]}",
+                               lambda default: True)
 
 
 def json2gentext(json: str) -> str:

@@ -7,7 +7,7 @@ from collections import OrderedDict
 from parse.convert import gentext2json
 
 
-#Constant names
+# Constant names
 IS_OC = "is_original_content"
 SPOILER = "spoiler"
 NSFW = "over_18"
@@ -18,10 +18,12 @@ PROMPT = "prompt"
 URL = "url"
 RESP = "response"
 
+
 class ValidJSON:
     """
     An abstracted class to make testing code more readable
     """
+
     def __init__(self, *tags):
         """"
         We expictely require our initial tags to be a list of tuples
@@ -31,7 +33,7 @@ class ValidJSON:
         if tags is None:
             self.dict = OrderedDict()
         else:
-            self.dict = OrderedDict( (tag, "") for tag in tags)
+            self.dict = OrderedDict((tag, "") for tag in tags)
 
     def __getitem__(self, index):
         return self.dict[index]
@@ -60,9 +62,11 @@ class ValidJSON:
     def __str__(self):
         return self.json()
 
+
 class TestGenText2JsonMethods(unittest.TestCase):
     """Ensures validity of text generation so output does not affect our front-end service upstream
     """
+
     def test_simple(self):
         """Simple test where the tested text is not too long and follows what the syntax we expect
         """
@@ -78,7 +82,8 @@ url: None
 response: This is a standard response
 """
         tags = [IS_OC, SPOILER, NSFW, EDIT, TYPE, SUBR, PROMPT, URL, RESP]
-        valid_text = ValidJSON(IS_OC, SPOILER, NSFW, EDIT, TYPE, SUBR, PROMPT, URL, RESP)
+        valid_text = ValidJSON(IS_OC, SPOILER, NSFW, EDIT,
+                               TYPE, SUBR, PROMPT, URL, RESP)
         valid_text.set_tags("true", SPOILER, EDIT)
         valid_text.set_tags("false", IS_OC, NSFW)
         valid_text[TYPE] = "comment"
@@ -106,7 +111,7 @@ url: None
 response: This is a standard response
 """
         with self.assertRaises(IndexError,
-        msg="over_18 and spoiler is swapped, thus the order is mismatched"):
+                               msg="over_18 and spoiler is swapped, thus the order is mismatched"):
             gentext2json(test_text, tags)
 
     def test_real_text(self):
@@ -126,7 +131,8 @@ response: Why would I think that's a good idea? It would be like I'd be happy on
 
 To be honest you can think of this as a problem for real life, when it comes to robots and we are still in the early stages of automation. You might not think this is the same as what happens. But I don't think guns actually do a big job and they just do something for fun. This would end my life (or at least, just like with most problems) because you probably need to keep guns for yourself and someone else.
 """
-        valid_text = ValidJSON(IS_OC, SPOILER, NSFW, EDIT, TYPE, SUBR, PROMPT, URL, RESP)
+        valid_text = ValidJSON(IS_OC, SPOILER, NSFW, EDIT,
+                               TYPE, SUBR, PROMPT, URL, RESP)
         valid_text.set_tags("False", IS_OC, SPOILER, NSFW, EDIT)
         valid_text[TYPE] = "comment"
         valid_text[SUBR] = "webcomics"

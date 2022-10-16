@@ -3,6 +3,7 @@ Miscellaneous utilities for parsing
 """
 from typing import Iterable, Tuple, Callable, Generator
 
+
 def special_tag_tokens(tags: Iterable[str]) -> Generator[Tuple[str, str, str, str], None, None]:
     """Yields the relevant tag tokens for text infilling.
 
