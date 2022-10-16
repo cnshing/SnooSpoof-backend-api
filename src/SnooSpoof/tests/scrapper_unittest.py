@@ -7,7 +7,7 @@ from types import SimpleNamespace
 from collections.abc import Iterable
 from random import sample, randrange
 import unittest
-import scrapper
+from generate import scrapper
 import praw
 
 reddit = praw.Reddit('SnooSpoof')

@@ -7,7 +7,7 @@ from string import ascii_lowercase, digits
 from typing import Tuple, Optional
 from datasets import Dataset, DatasetDict
 import unittest
-import verify
+from generate import verify
 
 
 

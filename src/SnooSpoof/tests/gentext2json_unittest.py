@@ -4,7 +4,7 @@ Parsing component responsible for converting text generated results into JSON
 import unittest
 import json
 from collections import OrderedDict
-import gentext2json
+from parse import gentext2json
 
 
 #Constant names
