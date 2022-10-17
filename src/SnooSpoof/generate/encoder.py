@@ -62,7 +62,7 @@ def requires(features: Iterable[str]) -> Callable:
                 verify.DatasetModel(dataset=dataset, features=features)
                 return function
 
-            # Functions with dataset as a keyword parameter must be reinserted
+            # Functions with verify_dataset as a keyword parameter must be reinserted
             param_conflict = signature(function).parameters['verify_dataset']
             if param_conflict:
                 kwargs['verify_dataset'] = dataset
