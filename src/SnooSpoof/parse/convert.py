@@ -5,7 +5,6 @@ from json import dumps, loads
 from collections.abc import Iterable
 from .util import line_delimited_text
 
-
 def gentext2dict(text: str, tags: Iterable[str]) -> dict[str, str]:
     """Parses a generated text into a dictionary where the text is
 
@@ -25,7 +24,7 @@ def gentext2dict(text: str, tags: Iterable[str]) -> dict[str, str]:
 
     Throws an error if an tag does not exist or is not in correct order
     Args:
-        text (str): Generated text delimited some sort of tags and a colon :
+        text (str): Generated text delimited by some tags and a colin
         tags (list[str]: A ordered list of tags
     """
     convert = {}
@@ -72,7 +71,7 @@ def gentext2json(text: str, tags: Iterable[str]) -> str:
 
     Throws an error if an tag does not exist or is not in correct order
     Args:
-        text (str): Generated text delimited some sort of tags and a colon :
+        text (str): Generated text delimited by some tags and a colin
         tags (list[str]: A ordered list of tags
 """
     return dumps(gentext2dict(text=text, tags=tags))
