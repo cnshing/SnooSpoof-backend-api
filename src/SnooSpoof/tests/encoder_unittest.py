@@ -3,7 +3,7 @@ Ensure that generalized functions of encoder works
 """
 from typing import Callable, Iterable
 import unittest
-from tests.test_dataset_utils import random_dataset, random_list
+from .test_dataset_utils import random_dataset, random_list
 from generate.encoder import requires
 
 
