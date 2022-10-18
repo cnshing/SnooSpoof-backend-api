@@ -4,39 +4,48 @@ Miscellaneous utilities for parsing
 from typing import Iterable, Tuple, Callable, Generator
 
 
-def tag_format(tag: str) -> str:
+def tag_format(tag: str, as_regex: bool = False) -> str:
     """Return the token that seperates each tag
 
     Args:
         tag (str): Any tag
+        as_regex (bool, optional): Should the token be a regular expression? Defaults to False.
 
     Returns:
-        str: "tag: "
+        str: A literal or regular expression representing the tag
     """
+    if as_regex:
+        return r"(?P<tag>.*?)\: "
     return f"{tag}: "  # Text assumes each tag content is seperated by "tag: "
 
 
-def answer_token(tag: str) -> str:
+def answer_token(tag: str, as_regex: bool = False) -> str:
     """Generate a answer token of tag
 
     Args:
         tag (str): Any tag
+        as_regex (bool, optional): Should the token be a regular expression? Defaults to False.
 
     Returns:
-        str: "[answer tag]"
+        str: A literal or regular expression representing an answer token
     """
+    if as_regex:
+        return r"\[answer (?P<answer_tag>.*?)\]"
     return f"[answer {tag}]"
 
 
-def blank_token(tag: str) -> str:
+def blank_token(tag: str, as_regex: bool = False) -> str:
     """Generate a blank token of tag
 
     Args:
         tag (str): Any tag
+        as_regex (bool, optional): Should the token be a regular expression? Defaults to False.
 
     Returns:
-        str: "[blank tag]"
+        str: A literal or regular expression representing an blank token
     """
+    if as_regex:
+        return r"\[blank (?P<blank_tag>.*?)\]"
     return f"[blank {tag}]"
 
 
