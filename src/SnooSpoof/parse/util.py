@@ -4,11 +4,11 @@ Miscellaneous utilities for parsing
 from typing import Iterable, Tuple, Callable, Generator
 
 
-def tag_format(tag: str, as_regex: bool = False) -> str:
+def tag_format(tag: str = "", as_regex: bool = False) -> str:
     """Return the token that seperates each tag
 
     Args:
-        tag (str): Any tag
+        tag (str): Any tag. Defaults to "".
         as_regex (bool, optional): Should the token be a regular expression? Defaults to False.
 
     Returns:
@@ -19,11 +19,11 @@ def tag_format(tag: str, as_regex: bool = False) -> str:
     return f"{tag}: "  # Text assumes each tag content is seperated by "tag: "
 
 
-def answer_token(tag: str, as_regex: bool = False) -> str:
+def answer_token(tag: str = "", as_regex: bool = False) -> str:
     """Generate a answer token of tag
 
     Args:
-        tag (str): Any tag
+        tag (str): Any tag. Defaults to "".
         as_regex (bool, optional): Should the token be a regular expression? Defaults to False.
 
     Returns:
@@ -34,11 +34,11 @@ def answer_token(tag: str, as_regex: bool = False) -> str:
     return f"[answer {tag}]"
 
 
-def blank_token(tag: str, as_regex: bool = False) -> str:
+def blank_token(tag: str = "", as_regex: bool = False) -> str:
     """Generate a blank token of tag
 
     Args:
-        tag (str): Any tag
+        tag (str): Any tag. Defaults to "".
         as_regex (bool, optional): Should the token be a regular expression? Defaults to False.
 
     Returns:
