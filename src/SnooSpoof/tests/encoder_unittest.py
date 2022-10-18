@@ -6,6 +6,7 @@ import unittest
 from tests.test_dataset_utils import random_dataset, random_list
 from generate.encoder import requires
 
+
 class TestRequiresFunctionality(unittest.TestCase):
     """Test the @requires decorator to ensure any mapping function performs
     consistently regardless if it was decorated or not.
@@ -15,11 +16,11 @@ class TestRequiresFunctionality(unittest.TestCase):
     def identity(self, elem):
         return elem
 
-    def concat(self, elem:str):
+    def concat(self, elem: str):
         return elem+"concat"
 
     def decoratorFunction(self, func: Callable,
-                        features: Iterable[str] | None = None) -> Callable:
+                          features: Iterable[str] | None = None) -> Callable:
         """
         Functionally create a requires decorator function without
         @requires(features=features)
@@ -42,7 +43,8 @@ class TestRequiresFunctionality(unittest.TestCase):
         simply verify the dataset. This test ensures that the "verify_dataset" parameter
         is routed to the correct destination.
         """
-        dataset, features, _ = random_dataset(include_features=True, include_subsets=False)
+        dataset, features, _ = random_dataset(
+            include_features=True, include_subsets=False)
 
         def conflictParams(elem, verify_dataset=None):
             """The values of "verify_dataset" should pass through
@@ -52,10 +54,10 @@ class TestRequiresFunctionality(unittest.TestCase):
             self.assertIsNotNone(verify_dataset)
             return elem
 
-        required_func = self.decoratorFunction(conflictParams, features=features)
+        required_func = self.decoratorFunction(
+            conflictParams, features=features)
         required_func("elem", verify_dataset="value should pass through")
         required_func("elem", verify_dataset=dataset)
-
 
     def runMappingTest(self, func):
         """Test to ensure decorated function does not inadvertely affect the function values.
@@ -65,21 +67,24 @@ class TestRequiresFunctionality(unittest.TestCase):
         map(function)
         hold true.
         """
-        dataset, features, _ = random_dataset(include_features=True, include_subsets=False)
+        dataset, features, _ = random_dataset(
+            include_features=True, include_subsets=False)
 
         required_func = self.decoratorFunction(func, features=features)
         example_elements = random_list(str_len=10, up_to=10)
 
         values = set(map(func, example_elements))
-        decorated_values = set(map(required_func(verify_dataset=dataset), example_elements))
+        decorated_values = set(
+            map(required_func(verify_dataset=dataset), example_elements))
         self.assertEqual(values, decorated_values,
-                        msg="map(function(verify_dataset=dataset)) should equal to map(function)")
+                         msg="map(function(verify_dataset=dataset)) should equal to map(function)")
 
     def test_identity(self):
         self.runMappingTest(self.identity)
 
     def test_concat(self):
         self.runMappingTest(self.concat)
+
 
 if __name__ == '__main__':
     unittest.main()
