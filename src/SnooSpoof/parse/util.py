@@ -4,6 +4,42 @@ Miscellaneous utilities for parsing
 from typing import Iterable, Tuple, Callable, Generator
 
 
+def tag_format(tag: str) -> str:
+    """Return the token that seperates each tag
+
+    Args:
+        tag (str): Any tag
+
+    Returns:
+        str: "tag: "
+    """
+    return f"{tag}: "  # Text assumes each tag content is seperated by "tag: "
+
+
+def answer_token(tag: str) -> str:
+    """Generate a answer token of tag
+
+    Args:
+        tag (str): Any tag
+
+    Returns:
+        str: "[answer tag]"
+    """
+    return f"[answer {tag}]"
+
+
+def blank_token(tag: str) -> str:
+    """Generate a blank token of tag
+
+    Args:
+        tag (str): Any tag
+
+    Returns:
+        str: "[blank tag]"
+    """
+    return f"[blank {tag}]"
+
+
 def special_tag_tokens(tags: Iterable[str]) -> Generator[Tuple[str, str, str, str], None, None]:
     """Yields the relevant tag tokens for text infilling.
 
@@ -20,10 +56,7 @@ def special_tag_tokens(tags: Iterable[str]) -> Generator[Tuple[str, str, str, st
         "tag", "tag: ", "[answer tag]", "[blank tag]"
     """
     for tag in tags:
-        tag_format = tag + ": "  # Text assumes each tag content is seperated by "tag: "
-        answer_token = f"[answer {tag}]"
-        blank_token = f"[blank {tag}]"
-        yield tag, tag_format, answer_token, blank_token
+        yield tag, tag_format(tag), answer_token(tag), blank_token(tag)
 
 
 def line_delimited_text(tags: Iterable[str],
