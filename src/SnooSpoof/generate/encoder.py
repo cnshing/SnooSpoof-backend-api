@@ -158,11 +158,11 @@ def text_infilling_func(tokenizer: Tokenizer,
 
     tag1: str1
     tag2: [blank tag2]
-    tag3: str3_1 [blank tag3] str3_3
+    tag3: str3_1[blank tag3] str3_3
     [sep]
-    str1 [answer tag1] str2 [answer tag2] str3_2 [answer tag3]
+    str2[answer tag2] str3_2[answer tag3]
 
-    where the str1, str2, and str3_2 are tokens determined by the tokenizer.
+    where "str2" and " str3_2" are tokens determined by the tokenizer.
 
     Note that no maniuplation of the raw text data is done, this text infilling
     encoding/decoding issues(e.g: [blank tag] being decoded into subwords even though
