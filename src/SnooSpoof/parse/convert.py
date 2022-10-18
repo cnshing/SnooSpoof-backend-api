@@ -3,7 +3,8 @@ Converts any object to another equivalent form
 """
 from json import dumps, loads
 from collections.abc import Iterable
-from .util import line_delimited_text
+from re import finditer
+from .util import line_delimited_text, answer_token, blank_token
 
 def gentext2dict(text: str, tags: Iterable[str]) -> dict[str, str]:
     """Parses a generated text into a dictionary where the text is
@@ -116,3 +117,43 @@ def json2gentext(json: str) -> str:
     tag3: str3
     """
     return dict2gentext(**loads(json))
+
+
+def from_infill(text: str, unqiue_sep_token: str = '[sep]') -> str:
+    """Reconstructs a infilled text example.
+
+    Given the following text:
+
+    tag1: str1
+    tag2: [blank tag2]
+    tag3: str3_1[blank tag3] str3_3
+    [sep]
+    str2[answer tag2] str3_2[answer tag3]
+
+    Connects back each answer token to the corresponding answer token:
+
+    tag1: str1
+    tag2: str2
+    tag3: str3_1 str3_2 str3_3
+
+    Args:
+        text (str): Text that has been randomly infilled
+        unqiue_sep_token (str, optional): A seperation token used exclusively for text infilling.
+        Defaults to '[sep]'.
+
+    Returns:
+        str: Generated text delimited by some tags and a colin
+    """
+
+    #When the separator token is not unique(occurs more than once),
+    #A ValueError occurs as there will be excessive values to unpack
+    inputs, target = tuple(text.split(sep=unqiue_sep_token, maxsplit=2))
+
+    extract_target = r'(?P<token>.*?)'+answer_token(as_regex=True)
+
+    #Extract each token, [answer tag], and replace corresponding [blank tag] with token
+    for match in finditer(extract_target, target):
+        token = match['token']
+        answer_tag = match['answer_tag']
+        inputs = inputs.replace(blank_token(answer_tag), token, 1)
+    return inputs
