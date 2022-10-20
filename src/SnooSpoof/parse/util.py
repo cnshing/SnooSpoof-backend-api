@@ -30,7 +30,7 @@ def answer_token(tag: str = "", as_regex: bool = False) -> str:
         str: A literal or regular expression representing an answer token
     """
     if as_regex:
-        return r"\[ *answer *(?P<answer_tag>.*?)\]"
+        return r"\[answer (?P<answer_tag>.*?)\]"
     return f"[answer {tag}]"
 
 
@@ -45,7 +45,7 @@ def blank_token(tag: str = "", as_regex: bool = False) -> str:
         str: A literal or regular expression representing an blank token
     """
     if as_regex:
-        return r"\[ *blank *(?P<blank_tag>.*?)\]"
+        return r"\[blank (?P<blank_tag>.*?)\]"
     return f"[blank {tag}]"
 
 
