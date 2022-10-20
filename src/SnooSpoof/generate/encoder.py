@@ -166,7 +166,7 @@ def text_infilling_func(tokenizer: Tokenizer,
     where "str2" and " str3_2" are tokens determined by the tokenizer.
 
     Args:
-        tokenizer (Tokenizer): Any Huggingface Tokenizer
+        tokenizer (Tokenizer): Any Huggingface "Fast"(or supports return_offsets_mapping) Tokenizer
         tags (Iterable[str]): Tags that correspond to a visual seperation of content in our text.
         unique_sep_token (str, optional): A seperation token used exclusively for text infilling.
         Defaults to '[sep]'.
