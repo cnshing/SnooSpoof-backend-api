@@ -6,6 +6,7 @@ from collections.abc import Iterable
 from re import finditer
 from .util import line_delimited_text, answer_token, blank_token
 
+
 def gentext2dict(text: str, tags: Iterable[str]) -> dict[str, str]:
     """Parses a generated text into a dictionary where the text is
 
@@ -145,13 +146,13 @@ def from_infill(text: str, unqiue_sep_token: str = '[sep]') -> str:
         str: Generated text delimited by some tags and a colin
     """
 
-    #When the separator token is not unique(occurs more than once),
-    #A ValueError occurs as there will be excessive values to unpack
+    # When the separator token is not unique(occurs more than once),
+    # A ValueError occurs as there will be excessive values to unpack
     inputs, target = tuple(text.split(sep=unqiue_sep_token, maxsplit=2))
 
     extract_target = r'(?P<token>.*?)'+answer_token(as_regex=True)
 
-    #Extract each token, [answer tag], and replace corresponding [blank tag] with token
+    # Extract each token, [answer tag], and replace corresponding [blank tag] with token
     for match in finditer(extract_target, target):
         token = match['token']
         answer_tag = match['answer_tag']
