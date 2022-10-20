@@ -145,7 +145,8 @@ def keep_nondeleted_posts(example):
 def text_infilling_func(tokenizer: Tokenizer,
                         tags: Iterable[str],
                         unique_sep_token: str = '[sep]',
-                        infill_probability: float = 0.15) -> Callable:
+                        infill_probability: float = 0.15,
+                        return_input_ids: bool = False) -> Callable:
     """Create a text infilling function that randomly splices tokens
     and reconnects them with special answer and blank tokens.
 
@@ -164,24 +165,18 @@ def text_infilling_func(tokenizer: Tokenizer,
 
     where "str2" and " str3_2" are tokens determined by the tokenizer.
 
-    Note that no maniuplation of the raw text data is done, this text infilling
-    encoding/decoding issues(e.g: [blank tag] being decoded into subwords even though
-    this tag is one single token). Lastly, the "tag:" metadata in our text will not
-    be infilled.
-
     Args:
-        tokenizer (Tokenizer): Any Huggingface Tokenizer that recognizes the each text
-        as a single token:
-            "tag: ", "[answer tag]", "[blank tag]", "\n"
+        tokenizer (Tokenizer): Any Huggingface Tokenizer
         tags (Iterable[str]): Tags that correspond to a visual seperation of content in our text.
         unique_sep_token (str, optional): A seperation token used exclusively for text infilling.
         Defaults to '[sep]'.
         infill_probability (float, optional): Probability of applying our infill at each token.
         Defaults to 0.15.
+        return_input_ids (bool, optional): Should the infilled text be encoded before returning?
+        Defaults to False.
 
     Raises:
-        ValueError: When our seperation token is used in tokenizer
-        TypeError: When any special tags(answer, blank, unqiue_sep_token, \n) is not a single token
+        ValueError: When our unique seperation token also belongs to the tokenizer
 
     Returns:
         Callable: A Huggingface example mappable function
@@ -190,56 +185,42 @@ def text_infilling_func(tokenizer: Tokenizer,
         raise ValueError(f"Tokenizer seperation token should not be equal to \
         unique seperation token {unique_sep_token}")
 
-    def token_to_id(token: str, as_list: bool = True) -> list[int] | int:
-        """Retrieves the token id of a single token only.
-
-        Args:
-            token (str): A token_
-            as_list (bool, optional): Should the id be encapsulated by a list? Defaults to True.
-
-        Raises:
-            TypeError: When the id is not one single token
-
-        Returns:
-            list[int] | int: A token id, optionally surrounded by a list.
-        """
-        single_id = tokenizer.convert_tokens_to_ids(token)
-        if not isinstance(single_id, int):
-            raise TypeError(f"{single_id} should be a single token id, \
-            suggesting {token} was not added to the tokenizer vocabulary")
-        if as_list:
-            return [single_id]
-        return single_id
-
-    # Add seperation token to our tokenizer
-    sep = token_to_id(unique_sep_token)
-
-    newline = token_to_id("\n")
-
     @requires(features=tags)
     def text_infilling(example):
-        inputs = []
-        target = []
+        inputs = ""
+        target = ""
         for tag, tag_format, answer_token, blank_token in special_tag_tokens(tags):
+            offset = 0
+            text = example[tag]
+            spans = tokenizer.encode_plus(text=example[tag],
+                                          return_token_type_ids=False,
+                                          return_attention_mask=False,
+                                          return_offsets_mapping=True)['offset_mapping']
+            # Randomly mask out tokens in our text
+            for start, end in spans:
+                # Tokens not belonging to the underyling text will have invalid spans (start >= end)
+                if start < end and random() < infill_probability:
+                    token = text[start+offset:end+offset]
 
-            # Initialize ids for answer, blank, tag, and text tokens
-            answer_id, blank_id = token_to_id(
-                answer_token), token_to_id(blank_token, as_list=False)
-            tag_id = token_to_id(tag_format)
-            tokens = tokenizer.tokenize(example[tag])
-            token_ids = tokenizer.convert_tokens_to_ids(tokens)
-
-            # Randomly mask out each id in our text
-            for index, token_id in enumerate(token_ids):
-                if random() < infill_probability:
                     # Move "token [answer tag]" to target
-                    target += [token_id] + answer_id
+                    target += token + answer_token
+
                     # Replace current token with "[blank tag]"
-                    token_ids[index] = blank_id
-            inputs += tag_id+token_ids+newline  # Format text to tag: masked_str \n
+                    text = text[:start+offset] + \
+                        blank_token + text[end+offset:]
+
+                    # Adjustments to account for shifting text alignments from replacement
+                    offset += len(blank_token) - len(token)
+            inputs += tag_format + text + "\n"  # Format text to tag: masked_str \n
 
         # Concatenate input [sep] target
-        return {'input_ids': inputs+sep+target}
+        infill_text = inputs + unique_sep_token + target
+
+        if return_input_ids:
+            input_ids = tokenizer.encode(infill_text)
+            return {'input_ids': input_ids}
+
+        return {'text': infill_text}
     return text_infilling
 
 
@@ -271,7 +252,8 @@ def encode(dataset: Dataset,
     for filter_fn in filters:
         encoded_dataset = encoded_dataset.filter(
             filter_fn(verify_dataset=encoded_dataset))
-    text_infilling = text_infilling_func(tokenizer, tags)
+    text_infilling = text_infilling_func(
+        tokenizer, tags, return_input_ids=True)
     encoded_dataset = encoded_dataset.map(
         text_infilling(verify_dataset=encoded_dataset))
     return encoded_dataset.train_test_split(test_size=test_size)
