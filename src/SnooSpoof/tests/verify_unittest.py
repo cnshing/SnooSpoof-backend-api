@@ -3,7 +3,7 @@ Test custom validator logic for DatasetModel and DatasetDictModel
 """
 import unittest
 from generate import verify
-from tests.test_dataset_utils import (
+from .test_dataset_utils import (
     random_features, random_subsets, create_dataset_shell, random_dataset
 )
 
