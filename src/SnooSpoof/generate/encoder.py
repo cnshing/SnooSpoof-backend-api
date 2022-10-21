@@ -6,7 +6,7 @@ from typing import Callable
 from collections.abc import Iterable
 from random import random
 from datasets import Dataset
-from tokenizers import Tokenizer
+from transformers import PreTrainedTokenizerFast
 from parse.util import line_delimited_text, special_tag_tokens
 from generate import verify
 
@@ -142,7 +142,7 @@ def keep_nondeleted_posts(example):
     return True
 
 
-def text_infilling_func(tokenizer: Tokenizer,
+def text_infilling_func(tokenizer: PreTrainedTokenizerFast,
                         tags: Iterable[str],
                         unique_sep_token: str = '[sep]',
                         infill_probability: float = 0.15,
@@ -151,22 +151,26 @@ def text_infilling_func(tokenizer: Tokenizer,
     and reconnects them with special answer and blank tokens.
 
     Given the following text:
+    "
     tag1: str1
     tag2: str2
     tag3: str3_1 str3_2 str3_3
+    "
 
     Create a function that manufactures a text infilling example:
 
+    "
     tag1: str1
     tag2: [blank tag2]
     tag3: str3_1[blank tag3] str3_3
-    [sep]
-    str2[answer tag2] str3_2[answer tag3]
+    [sep]str2[answer tag2] str3_2[answer tag3]
+    "
 
     where "str2" and " str3_2" are tokens determined by the tokenizer.
 
     Args:
-        tokenizer (Tokenizer): Any Huggingface "Fast"(or supports return_offsets_mapping) Tokenizer
+        tokenizer (PreTrainedTokenizerFast): Any HuggingFace "Fast" (or supports
+        return_offsets_mapping) Tokenizer
         tags (Iterable[str]): Tags that correspond to a visual seperation of content in our text.
         unique_sep_token (str, optional): A seperation token used exclusively for text infilling.
         Defaults to '[sep]'.
@@ -181,7 +185,7 @@ def text_infilling_func(tokenizer: Tokenizer,
     Returns:
         Callable: A Huggingface example mappable function
     """
-    if tokenizer.sep_token == unique_sep_token:
+    if hasattr(tokenizer, 'sep_token') and tokenizer.sep_token == unique_sep_token:
         raise ValueError(f"Tokenizer seperation token should not be equal to \
         unique seperation token {unique_sep_token}")
 
@@ -213,6 +217,9 @@ def text_infilling_func(tokenizer: Tokenizer,
                     offset += len(blank_token) - len(token)
             inputs += tag_format + text + "\n"  # Format text to tag: masked_str \n
 
+        # Trim the last newline as it is not neccesary for the last tag
+        inputs = inputs[:-1]
+
         # Concatenate input [sep] target
         infill_text = inputs + unique_sep_token + target
 
@@ -229,7 +236,7 @@ filters = [keep_nondeleted_posts]
 
 
 def encode(dataset: Dataset,
-           tokenizer: Tokenizer,
+           tokenizer: PreTrainedTokenizerFast,
            tags: Iterable[str],
            test_size: float = 0.1) -> Dataset:
     """Encode a dataset for training.
@@ -237,7 +244,8 @@ def encode(dataset: Dataset,
 
     Args:
         dataset (Dataset): A Huggingface Dataset
-        tokenizer (Tokenizer): Huggingface Tokenizer
+        tokenizer (PreTrainedTokenizerFast): Any HuggingFace "Fast" (or supports
+        return_offsets_mapping) Tokenizer
         tags (Iterable[str]): Features of our dataset containing relevant
         information about the user's Dataset.
         test_size (float, optional): Porportion of train and test split. Defaults to 0.1.
