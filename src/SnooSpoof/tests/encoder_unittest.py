@@ -3,8 +3,14 @@ Ensure that generalized functions of encoder works
 """
 from typing import Callable, Iterable
 import unittest
+from transformers import AutoTokenizer
+from generate.encoder import requires, text_infilling_func
+from parse.convert import from_infill, dict2gentext
 from .test_dataset_utils import random_dataset, random_list
-from generate.encoder import requires
+
+tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
+IGNORE_TEXT = ""
+IGNORE_TAGS = []
 
 
 class TestRequiresFunctionality(unittest.TestCase):
@@ -84,6 +90,93 @@ class TestRequiresFunctionality(unittest.TestCase):
 
     def test_concat(self):
         self.runMappingTest(self.concat)
+
+
+class TestInfillFunctionality(unittest.TestCase):
+    """Test that text infilling encoder behaves as expected
+    """
+
+    def test_func_types(self):
+        """Test that the text infilling function properly returns correct accessible values"""
+        text_values = text_infilling_func(
+            tokenizer, IGNORE_TAGS, return_input_ids=False)
+
+        self.assertTrue('text' in text_values(
+            IGNORE_TEXT), msg="text_infilling values on text should be accessible via 'key'")
+        input_values = text_infilling_func(
+            tokenizer, IGNORE_TAGS, return_input_ids=True)
+        self.assertTrue('input_ids' in input_values(
+            IGNORE_TEXT), msg="text_infilling values on ids should be accessible via 'input ids")
+
+    def test_seperator_logic(self):
+        """Test that an tokenizer's existing sep token
+        should error out when ununiquely used as the text infilling sep token"""
+        with self.assertRaises(ValueError):
+            text_infilling_func(tokenizer, IGNORE_TAGS,
+                                unique_sep_token='[SEP]')
+
+    def test_empty_tags(self):
+        """Test that text with empty tags should still conform to the infilled text definition:
+        text = input [sep] target
+        Even when the inputs and targets are empty
+        """
+        tags = ['tag1', 'tag2', 'tag3', 'tag4']
+        example = {tag: '' for tag in tags}
+        valid_text = """tag1: 
+tag2: 
+tag3: 
+tag4: [sep]"""
+        test_func = text_infilling_func(tokenizer, tags)
+        test_text = test_func(example)['text']
+        self.assertEqual(valid_text, test_text)
+
+    def test_zero_infill_probability(self):
+        """Test that infilled text still conform to the infilled text definition:
+        text = input [sep] target
+        even when no infill occurs, resulting in no target values
+        """
+        random_values = random_list(str_len=40, up_to=10)
+        tags = random_list(str_len=5, up_to=10)
+        example = {tag: value for tag, value in zip(tags, random_values)}
+        valid_text = dict2gentext(**example)+"[sep]"
+        test_func = text_infilling_func(
+            tokenizer, example.keys(), infill_probability=0)
+        test_text = test_func(example)['text']
+        self.assertEqual(valid_text, test_text)
+
+    def runInfillEncodingTest(self, example: dict[str, str], num_tests: int):
+        """Test that infilled text can succesfully be parsed back to the original valid text
+        using an real generated example from the Notebook
+
+        This test case has a depedency on "from_infill" to succeed correctly. Therefore, failure
+        for this test case may be the result of any combination(from_infill,
+        text_infilling_func, or both) of these components not working in tandem.
+
+        Args:
+            example (dict[str, str]): An dictionary representation of any valid texts
+            num_tests (int): The total number of tests to run
+        """
+        tags = example.keys()
+        test_func = text_infilling_func(tokenizer, tags)
+        valid_text = dict2gentext(**example)
+        for _ in range(num_tests):
+            test_text = test_func(example)['text']
+            infill_text = from_infill(test_text)
+            self.assertEqual(valid_text, infill_text)
+
+    def test_real_text(self):
+        """Test a real example from the notebook
+        """
+        example = {'is_original_content': 'False',
+                   'spoiler': 'False',
+                   'over_18': 'False',
+                   'edited': 'False',
+                   'post': 'comment',
+                   'subreddit': 'webcomics',
+                   'prompt': 'What would you do?',
+                   'url': 'None',
+                   'response': "Why would I think that's a good idea? It would be like I'd be happy on a robot to kill a super human with one simple button but with a gun, people would assume that it's actually a bad idea. Just google that and people wouldn't believe it. Its not true that guns are bad, all they do is send them away. It's only true since guns destroy their bodies and the gun isn't just a bullet. If you tried to design a computer without a button, its just one reason that we were talking about guns. My guess would have been to use the guns to destroy the computer completely. I guess even making a completely different computer would force someone to think about something.\n\nTo be honest you can think of this as a problem for real life, when it comes to robots and we are still in the early stages of automation. You might not think this is the same as what happens. But I don't think guns actually do a big job and they just do something for fun. This would end my life (or at least, just like with most problems) because you probably need to keep guns for yourself and someone else."}
+        self.runInfillEncodingTest(example, num_tests=500)
 
 
 if __name__ == '__main__':
