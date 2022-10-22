@@ -198,10 +198,10 @@ def text_infilling_func(tokenizer: PreTrainedTokenizerFast,
         for tag, tag_format, answer_token, blank_token in special_tag_tokens(tags):
             offset = 0
             text = str(example[tag])
-            spans = tokenizer.encode_plus(text=text,
-                                          return_token_type_ids=False,
-                                          return_attention_mask=False,
-                                          return_offsets_mapping=True)['offset_mapping']
+            spans = tokenizer(text=text,
+                              return_token_type_ids=False,
+                              return_attention_mask=False,
+                              return_offsets_mapping=True)['offset_mapping']
             # Randomly mask out tokens in our text
             for start, end in spans:
                 # Tokens not belonging to the underyling text will have invalid spans (start >= end)
