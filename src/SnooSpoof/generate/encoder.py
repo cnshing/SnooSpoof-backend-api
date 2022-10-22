@@ -126,7 +126,7 @@ def create_response(example):
     return {'response': text}
 
 
-@requires(features=['text'])
+@requires(features=['prompt', 'response'])
 def keep_nondeleted_posts(example):
     """
     For any given entry, return whether or not any component of the text was
@@ -137,7 +137,9 @@ def keep_nondeleted_posts(example):
     """
     deleted_keywords = ["[deleted]", "[removed]"]
     for keyword in deleted_keywords:
-        if keyword in example['text']:
+        prompt = example['prompt']
+        response = example['response']
+        if keyword in prompt or keyword in response:
             return False
     return True
 
