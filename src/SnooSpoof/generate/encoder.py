@@ -75,7 +75,7 @@ def assign_types(example):
     'comment' - A comment
     'submission' - A submission
     """
-    types = {lambda is_comment: example['body'] == "": 'comment',
+    types = {lambda is_comment: example['body'] is not None: 'comment',
              lambda is_submission: example['is_self'] is True: 'submission',
              lambda is_link: example['is_self'] is False: 'link'}
     for is_type, post in types.items():
