@@ -197,8 +197,8 @@ def text_infilling_func(tokenizer: PreTrainedTokenizerFast,
         target = ""
         for tag, tag_format, answer_token, blank_token in special_tag_tokens(tags):
             offset = 0
-            text = example[tag]
-            spans = tokenizer.encode_plus(text=example[tag],
+            text = str(example[tag])
+            spans = tokenizer.encode_plus(text=text,
                                           return_token_type_ids=False,
                                           return_attention_mask=False,
                                           return_offsets_mapping=True)['offset_mapping']
