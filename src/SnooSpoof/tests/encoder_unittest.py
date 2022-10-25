@@ -3,14 +3,13 @@ Ensure that generalized functions of encoder works
 """
 from typing import Callable, Iterable
 import unittest
-from transformers import AutoTokenizer
-from generate.encoder import requires, text_infilling_func
-from parse.convert import from_infill, dict2gentext
+import pandas
+from datasets import Dataset
+from generate.encoder import (
+    requires,
+    assign_types, remove_permalinks, create_prompt, create_response, keep_nondeleted_posts
+)
 from .test_dataset_utils import random_dataset, random_list
-
-tokenizer = AutoTokenizer.from_pretrained("bert-base-cased")
-IGNORE_TEXT = ""
-IGNORE_TAGS = []
 
 
 class TestRequiresFunctionality(unittest.TestCase):
@@ -65,9 +64,9 @@ class TestRequiresFunctionality(unittest.TestCase):
         required_func("elem", verify_dataset="value should pass through")
         required_func("elem", verify_dataset=dataset)
 
-    def runMappingTest(self, func):
+    def runMappingInvariantTest(self, func):
         """Test to ensure decorated function does not inadvertely affect the function values.
-        In other words, test that the equivalences
+        In other words, test that the invariant
         map(function(verify_dataset=dataset))
         =
         map(function)
@@ -86,97 +85,378 @@ class TestRequiresFunctionality(unittest.TestCase):
                          msg="map(function(verify_dataset=dataset)) should equal to map(function)")
 
     def test_identity(self):
-        self.runMappingTest(self.identity)
+        self.runMappingInvariantTest(self.identity)
 
     def test_concat(self):
-        self.runMappingTest(self.concat)
+        self.runMappingInvariantTest(self.concat)
 
 
-class TestInfillFunctionality(unittest.TestCase):
-    """Test that text infilling encoder behaves as expected
+class TestEncoderExampleFunctions(unittest.TestCase):
+    """Test that the example functions map/filter out to the expected values
     """
 
-    def test_func_types(self):
-        """Test that the text infilling function properly returns correct accessible values"""
-        text_values = text_infilling_func(
-            tokenizer, IGNORE_TAGS, return_input_ids=False)
+    # A base dataset for the functions to map on
+    userdata = [
+        {'is_original_content': False,
+         'is_self': False,
+         'over_18': False,
+         'selftext': '',
+         'subreddit': 'SnooSpoof',
+         'title': 'Scrapper UnitTest 4',
+         'url': 'http://link.post'},
+        {'is_original_content': False,
+         'is_self': True,
+         'over_18': False,
+         'selftext': 'Sample data for Scrapper UnitTest 3\n\nText submission',
+         'subreddit': 'SnooSpoof',
+         'title': 'Scrapper UnitTest 3',
+         'url': 'https://www.reddit.com/r/SnooSpoof/comments/xtjag2/scrapper_unittest_3/'},
+        {'is_original_content': False,
+         'is_self': True,
+         'over_18': False,
+         'selftext': ' \n\nSample data for Scrapper UnitTest 2\n\nText submission',
+         'subreddit': 'SnooSpoof',
+         'title': 'Scrapper UnitTest 2',
+         'url': 'https://www.reddit.com/r/SnooSpoof/comments/xtj9oh/scrapper_unittest_2/'},
+        {'is_original_content': False,
+         'is_self': True,
+         'over_18': False,
+         'selftext': 'Sample data for Scrapper UnitTest 1\n\nText submission',
+         'subreddit': 'SnooSpoof',
+         'title': 'Scrapper UnitTest 1',
+         'url': 'https://www.reddit.com/r/SnooSpoof/comments/xtivpb/scrapper_unittest_1/'},
+        {'body': 'Super Nested Comment for Scrapper UnitTest 3\r'
+                 '  \n'
+                 '\r'
+                 '  \n'
+                 'PARENT -> "Nested Comment for Scrapper UnitTest 3"',
+         'parent': {'selftext': 'Sample data for Scrapper UnitTest 3\n'
+                                '\n'
+                                'Text submission',
+                    'title': 'Scrapper UnitTest 3'},
+         'parent_id': 't1_iqq5weo',
+         'subreddit': 'SnooSpoof'},
+        {'body': 'Nested Comment for Scrapper UnitTest 3\r'
+                 '  \n'
+                 '\r'
+                 '  \n'
+                 'PARENT -> "Comment for Scrapper UnitTest 3"',
+         'parent': {'selftext': ' \n'
+                                '\n'
+                                'Sample data for Scrapper UnitTest 2\n'
+                                '\n'
+                                'Text submission',
+                    'title': 'Scrapper UnitTest 2'},
+         'parent_id': 't1_iqq5uex',
+         'subreddit': 'SnooSpoof'},
+        {'body': 'Comment for Scrapper UnitTest 3\n'
+                 '\n'
+                 'PARENT -> "Top-level comment for Scrapper UnitTest 3"',
+         'parent': {'selftext': 'Sample data for Scrapper UnitTest 1\n'
+                                '\n'
+                                'Text submission',
+                    'title': 'Scrapper UnitTest 1'},
+         'parent_id': 't1_iqq5u6c',
+         'subreddit': 'SnooSpoof'},
+        {'body': 'Top-level comment for Scrapper UnitTest 3',
+         'parent': {'body': 'Nested Comment for Scrapper UnitTest 3\r'
+                            '  \n'
+                            '\r'
+                            '  \n'
+                            'PARENT -> "Comment for Scrapper UnitTest 3"'},
+         'parent_id': 't3_xtjag2',
+         'subreddit': 'SnooSpoof'},
+        {'body': 'Super Nested Comment for Scrapper UnitTest 2\n'
+                 '\n'
+                 'PARENT -> "Nested Comment for Scrapper UnitTest 2"',
+         'parent': {'body': 'Comment for Scrapper UnitTest 3\n'
+                            '\n'
+                            'PARENT -> "Top-level comment for Scrapper UnitTest 3"'},
+         'parent_id': 't1_iqq5r2v',
+         'subreddit': 'SnooSpoof'},
+        {'body': 'Nested Comment for Scrapper UnitTest 2\n'
+                 '\n'
+                 'PARENT -> "Comment for Scrapper UnitTest 2"',
+         'parent': {'body': 'Top-level comment for Scrapper UnitTest 3'},
+         'parent_id': 't1_iqq5qxm',
+         'subreddit': 'SnooSpoof'},
+        {'body': 'Comment for Scrapper UnitTest 2\n'
+                 '\n'
+                 'PARENT -> "Top-level comment for Scrapper UnitTest 2"',
+                 'parent': {'body': 'Nested Comment for Scrapper UnitTest 2\n'
+                            '\n'
+                            'PARENT -> "Comment for Scrapper UnitTest 2"'},
+         'parent_id': 't1_iqq5qc1',
+         'subreddit': 'SnooSpoof'},
+        {'body': 'Top-level comment for Scrapper UnitTest 2',
+         'parent': {'body': 'Comment for Scrapper UnitTest 2\n'
+                            '\n'
+                            'PARENT -> "Top-level comment for Scrapper UnitTest 2"'},
+         'parent_id': 't3_xtj9oh',
+         'subreddit': 'SnooSpoof'},
+        {'body': 'Super Nested Comment for Scrapper UnitTest 1\n'
+                 '\n'
+                 'PARENT -> "Nested Comment for Scrapper UnitTest1"',
+         'parent': {'body': 'Top-level comment for Scrapper UnitTest 2'},
+         'parent_id': 't1_iqq4j7g',
+         'subreddit': 'SnooSpoof'},
+        {'body': 'Nested Comment for Scrapper UnitTest 1\n'
+                 '\n'
+                 'PARENT -> "Comment for Scrapper UnitTest1"',
+         'parent': {'body': 'Nested Comment for Scrapper UnitTest 1\n'
+                            '\n'
+                            'PARENT -> "Comment for Scrapper UnitTest1"'},
+         'parent_id': 't1_iqq3xx7',
+         'subreddit': 'SnooSpoof'},
+        {'body': 'Comment for Scrapper UnitTest1\n'
+                 '\n'
+                 'PARENT -> "Top-level comment for Scrapper UnitTest 1"',
+         'parent': {'body': 'Comment for Scrapper UnitTest1\n'
+                            '\n'
+                            'PARENT -> "Top-level comment for Scrapper UnitTest 1"'},
+         'parent_id': 't1_iqq3wg6',
+                 'subreddit': 'SnooSpoof'},
+        {'body': 'Top-level comment for Scrapper UnitTest 1',
+         'parent': {'body': 'Top-level comment for Scrapper UnitTest 1'},
+         'parent_id': 't3_xtivpb',
+         'subreddit': 'SnooSpoof'}
+    ]
 
-        self.assertTrue('text' in text_values(
-            IGNORE_TEXT), msg="text_infilling values on text should be accessible via 'key'")
-        input_values = text_infilling_func(
-            tokenizer, IGNORE_TAGS, return_input_ids=True)
-        self.assertTrue('input_ids' in input_values(
-            IGNORE_TEXT), msg="text_infilling values on ids should be accessible via 'input ids")
+    # Userdata that has been removed or deleted
+    deleted_userdata = [
+        {'is_original_content': False,
+         'is_self': True,
+         'over_18': False,
+         'selftext': '[removed]',
+         'subreddit': 'SnooSpoof',
+         'title': 'Encoder Deleted Post UnitTest 1',
+         'url': 'https://www.reddit.com/r/SnooSpoof/comments/yczloi/encoder_deleted_post_unittest_1/'},
+        {'body': 'Original Submission Data:\n'
+                 '\n'
+                 '"Encoder Deleted Post UnitTest 1  \n'
+                 'A post that has been deleted or removed should not be in our '
+                 'dataset  \n'
+                 'Text Submission\n'
+                 '\n'
+                 '"',
+         'parent': {'selftext': '[removed]',
+                    'title': 'Encoder Deleted Post UnitTest 1'},
+         'parent_id': 't3_yczloi',
+         'subreddit': 'SnooSpoof'},
+        {'body': 'Comment for Scrapper UnitTest 3\n'
+                 '\n'
+                 'PARENT -> "Top-level comment for Scrapper UnitTest 3"',
+         'parent': {'body': '[deleted]'},
+         'parent_id': 't1_iqq5u6c',
+         'subreddit': 'SnooSpoof'}
+    ]
 
-    def test_seperator_logic(self):
-        """Test that an tokenizer's existing sep token
-        should error out when ununiquely used as the text infilling sep token"""
-        with self.assertRaises(ValueError):
-            text_infilling_func(tokenizer, IGNORE_TAGS,
-                                unique_sep_token='[SEP]')
+    # The mapped values of each function in the same order as userdata+deleted_userdata
+    corresponding_encoding = [
+        {'post': 'link',
+         'prompt': 'Scrapper UnitTest 4',
+         'response': '',
+         'url': 'http://link.post'},
+        {'post': 'submission',
+         'prompt': 'Scrapper UnitTest 3',
+         'response': 'Sample data for Scrapper UnitTest 3\n\nText submission',
+         'url': None},
+        {'post': 'submission',
+         'prompt': 'Scrapper UnitTest 2',
+         'response': ' \n\nSample data for Scrapper UnitTest 2\n\nText submission',
+         'url': None},
+        {'post': 'submission',
+         'prompt': 'Scrapper UnitTest 1',
+         'response': 'Sample data for Scrapper UnitTest 1\n\nText submission',
+         'url': None},
+        {'post': 'comment',
+         'prompt': 'Scrapper UnitTest 3\n'
+                   'Sample data for Scrapper UnitTest 3\n'
+                   '\n'
+                   'Text submission',
+         'response': 'Super Nested Comment for Scrapper UnitTest 3\r'
+                   '  \n'
+                   '\r'
+                   '  \n'
+                   'PARENT -> "Nested Comment for Scrapper UnitTest 3"',
+         'url': None},
+        {'post': 'comment',
+         'prompt': 'Scrapper UnitTest 2\n'
+                   ' \n'
+                   '\n'
+                   'Sample data for Scrapper UnitTest 2\n'
+                   '\n'
+                   'Text submission',
+         'response': 'Nested Comment for Scrapper UnitTest 3\r'
+                   '  \n'
+                   '\r'
+                   '  \n'
+                   'PARENT -> "Comment for Scrapper UnitTest 3"',
+         'url': None},
+        {'post': 'comment',
+         'prompt': 'Scrapper UnitTest 1\n'
+                   'Sample data for Scrapper UnitTest 1\n'
+                   '\n'
+                   'Text submission',
+         'response': 'Comment for Scrapper UnitTest 3\n'
+                   '\n'
+         'PARENT -> "Top-level comment for Scrapper UnitTest 3"',
+         'url': None},
+        {'post': 'comment',
+         'prompt': 'Nested Comment for Scrapper UnitTest 3\r'
+                   '  \n'
+                   '\r'
+                   '  \n'
+                   'PARENT -> "Comment for Scrapper UnitTest 3"',
+         'response': 'Top-level comment for Scrapper UnitTest 3',
+         'url': None},
+        {'post': 'comment',
+         'prompt': 'Comment for Scrapper UnitTest 3\n'
+                   '\n'
+                   'PARENT -> "Top-level comment for Scrapper UnitTest 3"',
+         'response': 'Super Nested Comment for Scrapper UnitTest 2\n'
+                   '\n'
+                   'PARENT -> "Nested Comment for Scrapper UnitTest 2"',
+         'url': None},
+        {'post': 'comment',
+         'prompt': 'Top-level comment for Scrapper UnitTest 3',
+         'response': 'Nested Comment for Scrapper UnitTest 2\n'
+                   '\n'
+                   'PARENT -> "Comment for Scrapper UnitTest 2"',
+         'url': None},
+        {'post': 'comment',
+         'prompt': 'Nested Comment for Scrapper UnitTest 2\n'
+                   '\n'
+                   'PARENT -> "Comment for Scrapper UnitTest 2"',
+         'response': 'Comment for Scrapper UnitTest 2\n'
+                   '\n'
+                   'PARENT -> "Top-level comment for Scrapper UnitTest 2"',
+         'url': None},
+        {'post': 'comment',
+         'prompt': 'Comment for Scrapper UnitTest 2\n'
+                   '\n'
+                   'PARENT -> "Top-level comment for Scrapper UnitTest 2"',
+         'response': 'Top-level comment for Scrapper UnitTest 2',
+         'url': None},
+        {'post': 'comment',
+         'prompt': 'Top-level comment for Scrapper UnitTest 2',
+         'response': 'Super Nested Comment for Scrapper UnitTest 1\n'
+                   '\n'
+                   'PARENT -> "Nested Comment for Scrapper UnitTest1"',
+         'url': None},
+        {'post': 'comment',
+         'prompt': 'Nested Comment for Scrapper UnitTest 1\n'
+                   '\n'
+                   'PARENT -> "Comment for Scrapper UnitTest1"',
+         'response': 'Nested Comment for Scrapper UnitTest 1\n'
+                   '\n'
+                   'PARENT -> "Comment for Scrapper UnitTest1"',
+         'url': None},
+        {'post': 'comment',
+         'prompt': 'Comment for Scrapper UnitTest1\n'
+                   '\n'
+                   'PARENT -> "Top-level comment for Scrapper UnitTest 1"',
+         'response': 'Comment for Scrapper UnitTest1\n'
+                   '\n'
+                   'PARENT -> "Top-level comment for Scrapper UnitTest 1"',
+         'url': None},
+        {'post': 'comment',
+         'prompt': 'Top-level comment for Scrapper UnitTest 1',
+         'response': 'Top-level comment for Scrapper UnitTest 1',
+         'url': None},
+        {'post': 'submission',
+         'prompt': 'Encoder Deleted Post UnitTest 1',
+         'response': '[removed]',
+         'url': None},
+        {'post': 'comment',
+         'prompt': 'Encoder Deleted Post UnitTest 1\n'
+                   '[removed]',
+         'response': 'Original Submission Data:\n'
+                   '\n'
+                   '"Encoder Deleted Post UnitTest 1  \n'
+                   'A post that has been deleted or removed should not be in our '
+                   'dataset  \n'
+                   'Text Submission\n'
+                   '\n'
+                   '"',
+         'url': None},
+        {'post': 'comment',
+         'prompt': '[deleted]',
+         'response': 'Comment for Scrapper UnitTest 3\n'
+                   '\n'
+                   'PARENT -> "Top-level comment for Scrapper UnitTest 3"',
+         'url': None}
+    ]
 
-    def test_empty_tags(self):
-        """Test that text with empty tags should still conform to the infilled text definition:
-        text = input [sep] target
-        Even when the inputs and targets are empty
-        """
-        tags = ['tag1', 'tag2', 'tag3', 'tag4']
-        example = {tag: '' for tag in tags}
-        valid_text = """tag1: 
-tag2: 
-tag3: 
-tag4: [sep]"""
-        test_func = text_infilling_func(tokenizer, tags)
-        test_text = test_func(example)['text']
-        self.assertEqual(valid_text, test_text)
+    dataset = Dataset.from_pandas(pandas.DataFrame(userdata+deleted_userdata))
 
-    def test_zero_infill_probability(self):
-        """Test that infilled text still conform to the infilled text definition:
-        text = input [sep] target
-        even when no infill occurs, resulting in no target values
-        """
-        random_values = random_list(str_len=40, up_to=10)
-        tags = random_list(str_len=5, up_to=10)
-        example = {tag: value for tag, value in zip(tags, random_values)}
-        valid_text = dict2gentext(**example)+"[sep]"
-        test_func = text_infilling_func(
-            tokenizer, example.keys(), infill_probability=0)
-        test_text = test_func(example)['text']
-        self.assertEqual(valid_text, test_text)
-
-    def runInfillEncodingTest(self, example: dict[str, str], num_tests: int):
-        """Test that infilled text can succesfully be parsed back to the original valid text
-        using an real generated example from the Notebook
-
-        This test case has a depedency on "from_infill" to succeed correctly. Therefore, failure
-        for this test case may be the result of any combination(from_infill,
-        text_infilling_func, or both) of these components not working in tandem.
+    def maps(self, dataset: Dataset, functions: Iterable[Callable]) -> Dataset:
+        """Maps a dataset multiple times
 
         Args:
-            example (dict[str, str]): An dictionary representation of any valid texts
-            num_tests (int): The total number of tests to run
-        """
-        tags = example.keys()
-        test_func = text_infilling_func(tokenizer, tags)
-        valid_text = dict2gentext(**example)
-        for _ in range(num_tests):
-            test_text = test_func(example)['text']
-            infill_text = from_infill(test_text)
-            self.assertEqual(valid_text, infill_text)
+            dataset (Dataset): Any Huggingface Dataset
+            functions (Iterable[Callable]): An iterable of Huggingface
+            example functions
 
-    def test_real_text(self):
-        """Test a real example from the notebook
+        Returns:
+            (Dataset): A mapped Dataset
         """
-        example = {'is_original_content': 'False',
-                   'spoiler': 'False',
-                   'over_18': 'False',
-                   'edited': 'False',
-                   'post': 'comment',
-                   'subreddit': 'webcomics',
-                   'prompt': 'What would you do?',
-                   'url': 'None',
-                   'response': "Why would I think that's a good idea? It would be like I'd be happy on a robot to kill a super human with one simple button but with a gun, people would assume that it's actually a bad idea. Just google that and people wouldn't believe it. Its not true that guns are bad, all they do is send them away. It's only true since guns destroy their bodies and the gun isn't just a bullet. If you tried to design a computer without a button, its just one reason that we were talking about guns. My guess would have been to use the guns to destroy the computer completely. I guess even making a completely different computer would force someone to think about something.\n\nTo be honest you can think of this as a problem for real life, when it comes to robots and we are still in the early stages of automation. You might not think this is the same as what happens. But I don't think guns actually do a big job and they just do something for fun. This would end my life (or at least, just like with most problems) because you probably need to keep guns for yourself and someone else."}
-        self.runInfillEncodingTest(example, num_tests=500)
+        encoded_dataset = dataset
+        for function in functions:
+            encoded_dataset = encoded_dataset.map(function)
+        return encoded_dataset
+
+    def runMappingTest(self, functions: Iterable[Callable], features: Iterable[str]):
+        """Runs a mapping on the test dataset and see if its values
+        match to what is expected in corresponding_encodings
+
+        Args:
+            functions (Iterable[Callable]): An iterable of Huggingface
+            example functions
+            features (Iterable[str]): Features both in corresponding_encodings
+            and the Dataset that will be evaluated
+        """
+        encoded_dataset = self.maps(self.dataset, functions)
+        function_names = list(
+            map(lambda function: function.__name__, functions))
+        for data, encode in zip(encoded_dataset, self.corresponding_encoding):
+            for feature in features:
+                self.assertEqual(data[feature], encode[feature],
+                                 msg=f"{function_names} for \'{feature}\'\
+                                 created an invalid value.\n\
+                                 The correct encoding should be: \n{encode}\n")
+
+    def test_assign_types(self):
+        self.runMappingTest(functions=[assign_types], features=['post'])
+
+    def test_remove_permalinks(self):
+        self.runMappingTest(
+            functions=[assign_types, remove_permalinks], features=['url'])
+
+    def test_create_prompt(self):
+        self.runMappingTest(
+            functions=[assign_types, create_prompt], features=['prompt'])
+
+    def test_create_response(self):
+        self.runMappingTest(
+            functions=[assign_types, create_response], features=['response'])
+
+    def test_keep_nondeleted_posts(self):
+        """Test to ensure keep_nondeleted_posts correctly filters out the removed/deleted
+        datapoints
+        """
+        functions = [assign_types, create_prompt, create_response]
+
+        test_dataset = self.maps(self.dataset, functions)
+        test_dataset = test_dataset.filter(keep_nondeleted_posts)
+
+        invalid_dataset = Dataset.from_pandas(
+            pandas.DataFrame(self.deleted_userdata))
+        invalid_dataset = self.maps(invalid_dataset, functions)
+
+        for invalid_data in invalid_dataset:
+            self.assertNotIn(invalid_data, test_dataset,
+                             msg="Filtered data is unexpectedly in the dataset")
 
 
 if __name__ == '__main__':
