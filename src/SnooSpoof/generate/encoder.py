@@ -4,10 +4,9 @@ Encode the raw data of a username into a dataset suitable for training
 from inspect import signature
 from typing import Callable
 from collections.abc import Iterable
-from random import random
 from datasets import Dataset
-from transformers import PreTrainedTokenizerFast
-from parse.util import line_delimited_text, tag_format, special_tag_tokens
+from transformers import PreTrainedTokenizer
+from parse.util import line_delimited_text, tag_format
 from generate import verify
 
 
@@ -147,95 +146,6 @@ def keep_nondeleted_posts(example):
     return True
 
 
-def text_infilling_func(tokenizer: PreTrainedTokenizerFast,
-                        tags: Iterable[str],
-                        unique_sep_token: str = '[sep]',
-                        infill_probability: float = 0.15,
-                        return_input_ids: bool = False) -> Callable:
-    """Create a text infilling function that randomly splices tokens
-    and reconnects them with special answer and blank tokens.
-
-    Given the following text:
-    "
-    tag1: str1
-    tag2: str2
-    tag3: str3_1 str3_2 str3_3
-    "
-
-    Create a function that manufactures a text infilling example:
-
-    "
-    tag1: str1
-    tag2: [blank tag2]
-    tag3: str3_1[blank tag3] str3_3
-    [sep]str2[answer tag2] str3_2[answer tag3]
-    "
-
-    where "str2" and " str3_2" are tokens determined by the tokenizer.
-
-    Args:
-        tokenizer (PreTrainedTokenizerFast): Any HuggingFace "Fast" (or supports
-        return_offsets_mapping) Tokenizer
-        tags (Iterable[str]): Tags that correspond to a visual seperation of content in our text.
-        unique_sep_token (str, optional): A seperation token used exclusively for text infilling.
-        Defaults to '[sep]'.
-        infill_probability (float, optional): Probability of applying our infill at each token.
-        Defaults to 0.15.
-        return_input_ids (bool, optional): Should the infilled text be encoded before returning?
-        Defaults to False.
-
-    Raises:
-        ValueError: When our unique seperation token also belongs to the tokenizer
-
-    Returns:
-        Callable: A Huggingface example mappable function
-    """
-    if hasattr(tokenizer, 'sep_token') and tokenizer.sep_token == unique_sep_token:
-        raise ValueError(f"Tokenizer seperation token should not be equal to \
-        unique seperation token {unique_sep_token}")
-
-    @requires(features=tags)
-    def text_infilling(example):
-        inputs = ""
-        target = ""
-        for tag, tag_format, answer_token, blank_token in special_tag_tokens(tags):
-            offset = 0
-            text = str(example[tag])
-            spans = tokenizer(text=text,
-                              return_token_type_ids=False,
-                              return_attention_mask=False,
-                              return_offsets_mapping=True)['offset_mapping']
-            # Randomly mask out tokens in our text
-            for start, end in spans:
-                # Tokens not belonging to the underyling text will have invalid spans (start >= end)
-                if start < end and random() < infill_probability:
-                    token = text[start+offset:end+offset]
-
-                    # Move "token [answer tag]" to target
-                    target += token + answer_token
-
-                    # Replace current token with "[blank tag]"
-                    text = text[:start+offset] + \
-                        blank_token + text[end+offset:]
-
-                    # Adjustments to account for shifting text alignments from replacement
-                    offset += len(blank_token) - len(token)
-            inputs += tag_format + text + "\n"  # Format text to tag: masked_str \n
-
-        # Trim the last newline as it is not neccesary for the last tag
-        inputs = inputs[:-1]
-
-        # Concatenate input [sep] target
-        infill_text = inputs + unique_sep_token + target
-
-        if return_input_ids:
-            input_ids = tokenizer.encode(infill_text)
-            return {'input_ids': input_ids}
-
-        return {'text': infill_text}
-    return text_infilling
-
-
 def create_text_func(tags: Iterable[str]) -> Callable:
     """Create a functon that concatenates each tag in tags into
     the following text:
@@ -265,12 +175,8 @@ def create_text_func(tags: Iterable[str]) -> Callable:
     return create_text
 
 
-mappings = [remove_permalinks, create_prompt, create_response]
-filters = [keep_nondeleted_posts]
-
-
 def encode(dataset: Dataset,
-           tokenizer: PreTrainedTokenizerFast,
+           tokenizer: PreTrainedTokenizer,
            tags: Iterable[str],
            test_size: float = 0.1) -> Dataset:
     """Encode a dataset for training.
@@ -278,8 +184,7 @@ def encode(dataset: Dataset,
 
     Args:
         dataset (Dataset): A Huggingface Dataset
-        tokenizer (PreTrainedTokenizerFast): Any HuggingFace "Fast" (or supports
-        return_offsets_mapping) Tokenizer
+        tokenizer (PreTrainedTokenizer): Any Huggingface PreTrained Tokenizer
         tags (Iterable[str]): Features of our dataset containing relevant
         information about the user's Dataset.
         test_size (float, optional): Porportion of train and test split. Defaults to 0.1.
@@ -287,6 +192,16 @@ def encode(dataset: Dataset,
     Returns:
         Dataset: A dataset ready for training.
     """
+
+    @requires(features=['text'])
+    def tokenize(example):
+        """Just tokenizes example['text']"""
+        return tokenizer(example['text'])
+
+    mappings = [remove_permalinks, create_prompt,
+                create_response, create_text_func(tags=tags), tokenize]
+    filters = [keep_nondeleted_posts]
+
     encoded_dataset = dataset.map(assign_types)
     for apply in mappings:
         encoded_dataset = encoded_dataset.map(
@@ -294,8 +209,4 @@ def encode(dataset: Dataset,
     for filter_fn in filters:
         encoded_dataset = encoded_dataset.filter(
             filter_fn(verify_dataset=encoded_dataset))
-    text_infilling = text_infilling_func(
-        tokenizer, tags, return_input_ids=True)
-    encoded_dataset = encoded_dataset.map(
-        text_infilling(verify_dataset=encoded_dataset))
     return encoded_dataset.train_test_split(test_size=test_size)
