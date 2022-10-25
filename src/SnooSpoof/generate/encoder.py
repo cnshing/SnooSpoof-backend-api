@@ -7,7 +7,7 @@ from collections.abc import Iterable
 from random import random
 from datasets import Dataset
 from transformers import PreTrainedTokenizerFast
-from parse.util import line_delimited_text, special_tag_tokens
+from parse.util import line_delimited_text, tag_format, special_tag_tokens
 from generate import verify
 
 
@@ -121,12 +121,12 @@ def create_response(example):
     Link posts do not have a main body, therefore their responses
     will be empty.
     """
-    responses = {'comment': example['body'], 'link': '', 'submission': example['selftext']}
+    responses = {'comment': example['body'],
+                 'link': '', 'submission': example['selftext']}
     for response_type, response in responses.items():
         if example['post'] == response_type:
             return {'response': response}
     return example
-
 
 
 @requires(features=['prompt', 'response'])
@@ -234,6 +234,35 @@ def text_infilling_func(tokenizer: PreTrainedTokenizerFast,
 
         return {'text': infill_text}
     return text_infilling
+
+
+def create_text_func(tags: Iterable[str]) -> Callable:
+    """Create a functon that concatenates each tag in tags into
+    the following text:
+
+    "
+    tag1: str1
+    tag2: str2
+    tag3: str3_1 str3_2 str3_3
+    "
+    where "str1", "str2", "str3_1 str3_2 str3_3" are retrivable
+    via example['tag1'], example['tag2'], example['tag3']
+
+    Args:
+        tags (Iterable[str]): Tags that correspond to a visual seperation of content in our text.
+
+    Returns:
+        Callable: A Huggingface example mappable function
+    """
+
+    @requires(features=tags)
+    def create_text(example):
+        text = line_delimited_text(tags,
+                                   lambda tag: tag_format(
+                                       tag) + str(example[tag]),
+                                   lambda default: True)
+        return {'text': text}
+    return create_text
 
 
 mappings = [remove_permalinks, create_prompt, create_response]
