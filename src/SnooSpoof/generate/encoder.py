@@ -1,6 +1,7 @@
 """
 Encode the raw data of a username into a dataset suitable for training
 """
+from functools import wraps
 from inspect import signature
 from typing import Callable
 from collections.abc import Iterable
@@ -40,6 +41,7 @@ def requires(features: Iterable[str]) -> Callable:
         features (Iterable[str]): Features expected in the Dataset
     """
     def decorator(function):
+        @wraps(function)
         def check_dataset(*args, verify_dataset=None, **kwargs):
             """When function(dataset) is called, the map operation
             is resolved as follows:
