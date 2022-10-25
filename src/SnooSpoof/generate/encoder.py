@@ -117,13 +117,16 @@ def create_prompt(example):
 def create_response(example):
     """
     Create the response column.
-    A response entry should only consist of the main text, comment or submission.
+    A response entry should only consist of the main "body" of the post.
+    Link posts do not have a main body, therefore their responses
+    will be empty.
     """
-    if example['post'] == 'comment':
-        return {'response': example['body']}
-    text = line_delimited_text(
-        ["selftext"], lambda get: example[get], lambda valid: example[valid])
-    return {'response': text}
+    responses = {'comment': example['body'], 'link': '', 'submission': example['selftext']}
+    for response_type, response in responses.items():
+        if example['post'] == response_type:
+            return {'response': response}
+    return example
+
 
 
 @requires(features=['prompt', 'response'])
