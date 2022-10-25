@@ -92,7 +92,7 @@ def remove_permalinks(example):
     is semantically related to the text(a link post), permalinks are non relevant
     to text generation and should be removed.
     """
-    if example['post'] != 'url':
+    if example['post'] != 'link':
         return {'url': None}
     return example
 
