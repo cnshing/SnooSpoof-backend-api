@@ -103,5 +103,5 @@ class TrainerExtension():
                              tokenizer=self.tokenizer,
                              **pipeline_args)
 
-        generated_text = generator(inputs=initial_text, **generator_args)
+        generated_text = generator(initial_text, **generator_args)
         return generated_text
