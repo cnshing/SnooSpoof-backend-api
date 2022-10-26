@@ -103,5 +103,10 @@ class TrainerExtension():
                              tokenizer=self.tokenizer,
                              **pipeline_args)
 
-        generated_text = generator(initial_text, **generator_args)
+        results = generator(initial_text, **generator_args)
+
+        generated_text = [result['generated_text'] for result in results]
+
+        if len(generated_text) == 1:
+            return generated_text[0]
         return generated_text
