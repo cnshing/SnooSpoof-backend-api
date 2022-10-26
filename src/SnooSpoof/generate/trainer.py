@@ -1,11 +1,9 @@
 """Train a dataset and output text
 """
-from typing import Any, Optional
-from collections.abc import Iterable
 from transformers import (
     PreTrainedModel, PreTrainedTokenizerFast,
     DataCollatorForLanguageModeling, TrainingArguments, Trainer,
-    pipeline
+    TextGenerationPipeline
 )
 from datasets import DatasetDict
 
@@ -49,61 +47,25 @@ class TrainerExtension():
         )
         trainer.train()
 
-    def _check_args(self, invalid_args: Iterable[str], kwargs: dict[str, Any]):
-        """
-        Args:
-            invalid_args (Iterable[str]): An iterable of arguments
-            kwargs (dict[str, Any]): A key word argument mapping
-
-        Raises:
-            ValueError: When an key word argument is invalid
-        """
-        for arg in invalid_args:
-            if arg in kwargs:
-                raise ValueError(
-                    f"{arg} is an default argument and should not be overrided")
-
     def text(self,
-             initial_text: str,
-             pipeline_args: Optional[dict[str, Any]] = None,
-             generator_args: Optional[dict[str, Any]] = None) -> str | Iterable[str]:
-        """Generate text based off an initial text, and additional pipeline or
-        generator args.
+             initial_text: str) -> str | list[str]:
+        """Generate text based off an initial text.
 
-        The arguments ['model', 'task', 'tokenizer'], and ['inputs'] should not
-        be used in pipeline_args or generator_args respectively as they are already
-        defined during class initilization.
-
-        An ValueError will occur if these arguments are ever referenced in pipeline_args
-        and generator_args.
+        Adjusting the text parameters is done by following the configuration of
+        self.model.
 
         Args:
             initial_text (str): Gives context on how the text should be filled.
-            pipeline_args (Optional[dict[str,Any]], optional): Additional arguments
-            for the pipeline object. Defaults to None.
-            generator_args (Optional[dict[str,Any]], optional): Additional arguments
-            for the generator object. Defaults to None.
 
         Returns:
-            str | Iterable[str]: Batches of text if the arguments request multiple text,
+            str | list[str]: Batches of text if the arguments request multiple text,
             otherwise just a single text.
         """
-        if pipeline_args is None:
-            pipeline_args = {}
 
-        if generator_args is None:
-            generator_args = {}
+        generator = TextGenerationPipeline(model=self.model,
+                                           tokenizer=self.tokenizer)
 
-        # Pipeline/Generator arguments should not override default parameters
-        self._check_args(['model', 'task', 'tokenizer'], pipeline_args)
-        self._check_args(['inputs'], generator_args)
-
-        generator = pipeline(task='text-generation',
-                             model=self.model,
-                             tokenizer=self.tokenizer,
-                             **pipeline_args)
-
-        results = generator(initial_text, **generator_args)
+        results = generator(initial_text)
 
         generated_text = [result['generated_text'] for result in results]
 
