@@ -43,7 +43,8 @@ class TrainerExtension():
             # as needed.
             gradient_accumulation_steps=4,
             gradient_checkpointing=True, #This sets use_cache=False for now
-            optim='adafactor'
+            optim='adafactor',
+            per_device_eval_batch_size=1,
         )
         trainer = Trainer(
             model=self.model,
