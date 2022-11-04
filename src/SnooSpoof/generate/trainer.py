@@ -42,6 +42,7 @@ class TrainerExtension():
             # on my own 4 GB VRAM machine. In production, remove or adjust these arguments
             # as needed.
             gradient_accumulation_steps=4,
+            gradient_checkpointing=True, #This sets use_cache=False for now
             optim='adafactor'
         )
         trainer = Trainer(
