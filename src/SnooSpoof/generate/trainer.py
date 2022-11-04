@@ -36,7 +36,13 @@ class TrainerExtension():
             # One epoch is enough for users with large post/comment history
             # Multiple epochs for users with very little post/comments will incur overfitting
             num_train_epochs=1,
-            per_device_train_batch_size=1
+            per_device_train_batch_size=1,
+
+            # These are the optimization steps neccesary to succesfully run training
+            # on my own 4 GB VRAM machine. In production, remove or adjust these arguments
+            # as needed.
+            gradient_accumulation_steps=4,
+            optim='adafactor'
         )
         trainer = Trainer(
             model=self.model,
@@ -63,7 +69,8 @@ class TrainerExtension():
         """
 
         generator = TextGenerationPipeline(model=self.model,
-                                           tokenizer=self.tokenizer)
+                                           tokenizer=self.tokenizer,
+                                           device='cuda:0')
 
         results = generator(initial_text)
 
