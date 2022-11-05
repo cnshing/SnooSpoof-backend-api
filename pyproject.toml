@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "snoospoof"
+version = "0"
+description = "Generate reddit posts through the Huggingface API"
+authors = ["Shing Chan <chan.shing@protonmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "3.10.4"
+fastapi = "0.85.0"
+datasets = "2.5.2"
+transformers = "4.22.2"
+pandas = "1.5.0"
+praw = "7.6.0"
+torch = "1.12.1"
+uvicorn = "0.18.3"
+
+[tool.poetry.group.dev.dependencies]
+pylint = "^2.15.5"
+autopep8 = "^2.0.0"
+pytype = "^2022.10.26"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
