@@ -52,33 +52,6 @@ def gentext2dict(text: str, tags: Iterable[str]) -> dict[str, str]:
     return convert
 
 
-def gentext2json(text: str, tags: Iterable[str]) -> str:
-    """Parses a generated text into a JSON "object" where the text is
-
-    "tag1: str1
-    tag2: str2
-    tag3: str3
-    "
-    such that tag1, tag2, tag3 are elements of tags
-
-    into the following key-value pairs
-
-    {
-        "tag1": "str1",
-        "tag2": "str2",
-        "tag3": "str3"
-    }
-
-    represented as a JSON compatible string.
-
-    Throws an error if an tag does not exist or is not in correct order
-    Args:
-        text (str): Generated text delimited by some tags and a colin
-        tags (list[str]: A ordered list of tags
-"""
-    return dumps(gentext2dict(text=text, tags=tags))
-
-
 def dict2gentext(**kwargs: str) -> str:
     """Converts our dictionary of keyword arguments
 
