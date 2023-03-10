@@ -1,7 +1,7 @@
 """Passes requests for text generation and responds with the corresponding text
 """
 from json import dumps
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from pydantic import BaseModel  # pytype: disable=import-error
 import praw
 from transformers import GPT2Tokenizer
@@ -33,7 +33,7 @@ class GenerationConfig(BaseModel):
 
 
 @app.get("/generate/")
-def generate(config: GenerationConfig):
+def generate(config: GenerationConfig = Depends()):
     """Fill in the missing 'subreddit', 'prompt' and 'response'
     values of any generation request.
 
@@ -42,4 +42,4 @@ def generate(config: GenerationConfig):
         'subreddit', 'prompt', and 'response.
     """
     gen = Generator(reddit=reddit, model=model, tokenizer=tokenizer)
-    return dumps(gen.generate(**config.__dict__))
+    return dumps(gen.generate(**config.dict()))
