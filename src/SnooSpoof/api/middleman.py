@@ -1,7 +1,9 @@
 """Passes requests for text generation and responds with the corresponding text
 """
+from traceback import format_exc
 from json import dumps
 from fastapi import FastAPI, Depends
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel  # pytype: disable=import-error
 import praw
@@ -50,4 +52,10 @@ def generate(config: GenerationConfig = Depends()):
         'subreddit', 'prompt', and 'response.
     """
     gen = Generator(reddit=reddit, model=model, tokenizer=tokenizer)
-    return dumps(gen.generate(**config.dict()))
+    try:
+        return dumps(gen.generate(**config.dict()))
+    except Exception:
+        error = format_exc().splitlines()[-1]
+        return JSONResponse(
+            status_code=500,
+            content={"error": error})
