@@ -117,4 +117,8 @@ class Generator:
                                      if feature not in missing_features})
         generated_text = self.trainer.text(initial_text=input_text)
         results = gentext2dict(text=generated_text, tags=features)
-        return {feature: results[feature] for feature in missing_features}
+
+        #Prompts that have been autofilled needs to also be sent back
+        autofill_prompt = [feature for feature in ['prompt'] 
+                                     if args[feature] != results[feature]]
+        return {feature: results[feature] for feature in missing_features + autofill_prompt}
