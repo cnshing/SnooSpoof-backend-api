@@ -198,7 +198,14 @@ def encode(dataset: Dataset,
     @requires(features=['text'])
     def tokenize(example):
         """Just tokenizes example['text']"""
-        return tokenizer(example['text'])
+
+        #Truncation must be enabled as examples exceeding the max length will fail to train.
+        #Under expected behavior, a tokenizer pre-initialized with truncation enabled should
+        #by default apply truncation without explicit specification. However, by design this
+        #does not apply. See
+        #https://github.com/huggingface/transformers/issues/14033
+        #for more information.
+        return tokenizer(example['text'], truncation=True)
 
     mappings = [remove_permalinks, create_prompt,
                 create_response, create_text_func(tags=tags), tokenize]
