@@ -2,6 +2,7 @@
 """
 from json import dumps
 from fastapi import FastAPI, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel  # pytype: disable=import-error
 import praw
 from transformers import GPT2Tokenizer
@@ -20,6 +21,13 @@ reddit = praw.Reddit("SnooSpoof")
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
 
 class GenerationConfig(BaseModel):
     """Model containing information for how text should be generated
