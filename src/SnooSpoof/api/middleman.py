@@ -1,7 +1,6 @@
 """Passes requests for text generation and responds with the corresponding text
 """
 from traceback import format_exc
-from json import dumps
 from fastapi import FastAPI, Depends
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -48,12 +47,12 @@ def generate(config: GenerationConfig = Depends()):
     values of any generation request.
 
     Returns:
-        str: An JSON object with any of the following keys:
+        dict: An JSON object with any of the following keys:
         'subreddit', 'prompt', and 'response.
     """
     gen = Generator(reddit=reddit, model=model, tokenizer=tokenizer)
     try:
-        return dumps(gen.generate(**config.dict()))
+        return gen.generate(**config.dict())
     except Exception:
         error = format_exc().splitlines()[-1]
         return JSONResponse(
