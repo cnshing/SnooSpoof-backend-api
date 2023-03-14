@@ -25,8 +25,13 @@ curl -X 'GET' \
 Request body:
 
 username: string => The username the text should make an impression of.
+
 subreddit: Optional[string] => Insert subreddit into initial text to bias text generation
+
 prompt: Optional[string] => Insert an initial prompt into text to bias text generation
+
 comments_only: boolean | none => Mark initial text with boolean that is always true with comment_reply posts to bias text generation
+
 is_original_content: boolean | null => Same as above
+
 over_18: boolean | null  => Same as above
