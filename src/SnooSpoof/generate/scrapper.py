@@ -200,8 +200,9 @@ class PRAWExtension():
 
         submission_ids, comment_ids = self.seperate_posts(parent_ids)
         submissions = self.search_submissions(
-            ids=submission_ids, tags=submission_tags)
-        comments = self.search_comments(ids=comment_ids, tags=comment_tags)
+            ids=submission_ids, tags=submission_tags) if submission_ids else submission_ids
+        comments = self.search_comments(ids=comment_ids,
+            tags=comment_tags) if comment_ids else comment_ids
         parents = {id: parent for id, parent in zip(
             submission_ids+comment_ids, submissions+comments)}
         return parents
