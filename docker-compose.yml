@@ -1,0 +1,15 @@
+
+services:
+  snoospoof_api:
+    build: .
+    secrets:
+      - praw.ini
+    environment:
+      SNOOSPOOF_API_PORT: $SNOOSPOOF_API_PORT
+      SNOOSPOOF_API_HOST: $SNOOSPOOF_API_HOST
+    ports:
+     - "${SNOOSPOOF_API_PORT}"
+
+secrets:
+  praw.ini:
+    file: ./praw.ini

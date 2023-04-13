@@ -1,7 +1,7 @@
 FROM python:3.10.4-slim as builder
 
 ARG SNOOSPOOF_API_PORT \
-    SNOOSPOOF_API_HOST="0.0.0.0"
+    SNOOSPOOF_API_HOST
 
 LABEL maintainer="Shing Chan <chan.shing@protonmail.com>"
 
@@ -66,7 +66,7 @@ COPY src/SnooSpoof/ .
 
 #Assume praw.ini is a valid secret from docker-compose
 #Links a secret to the project directory for PRAW scrapper
-RUN ln -s /run/secrets/praw.ini ./praw.ini
+RUN --mount=type=secret,id=praw.ini,required,target=./praw.ini echo "Mounting praw.ini secret..."
 
 RUN chown snoospoofapi:snoospoofapi . 
 
