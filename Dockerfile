@@ -64,15 +64,14 @@ WORKDIR ${SNOOSPOOF_DIR}
 
 COPY src/SnooSpoof/ .
 
-#Assume praw.ini is a valid secret from docker-compose
-#Links a secret to the project directory for PRAW scrapper
-RUN --mount=type=secret,id=praw.ini,required,target=./praw.ini echo "Mounting praw.ini secret..."
-
 RUN chown snoospoofapi:snoospoofapi . 
 
 EXPOSE ${SNOOSPOOF_API_PORT}
 
 USER 1001
 
-CMD uvicorn api.middleman:app --host ${SNOOSPOOF_API_HOST} --port ${SNOOSPOOF_API_PORT}
+#Assume praw.ini is a valid secret from docker compose
+#Links a secret to the project directory for PRAW scrapper
+RUN ln -s /run/secrets/praw.ini ./praw.ini
 
+CMD uvicorn api.middleman:app --host ${SNOOSPOOF_API_HOST} --port ${SNOOSPOOF_API_PORT}
