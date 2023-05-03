@@ -1,6 +1,7 @@
-
+version: '3'
+name: snoospoof
 services:
-  snoospoof_api:
+  api:
     build: .
     secrets:
       - praw.ini
@@ -8,7 +9,15 @@ services:
       SNOOSPOOF_API_PORT: $SNOOSPOOF_API_PORT
       SNOOSPOOF_API_HOST: $SNOOSPOOF_API_HOST
     ports:
-     - "${SNOOSPOOF_API_PORT}"
+     - "${SNOOSPOOF_API_PORT}:${SNOOSPOOF_API_PORT}"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped:5
 
 secrets:
   praw.ini:
