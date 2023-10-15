@@ -33,7 +33,7 @@ RUN apt-get update \
       build-essential \
       curl
 
-COPY pyproject.toml ./
+COPY pyproject.toml README.md ./
 
 RUN poetry check
 
