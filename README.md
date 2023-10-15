@@ -2,7 +2,7 @@
 Generate Reddit posts of any users through HuggingFace's Transformers library
 
 
-##Requirements
+## Requirements
 - An registered reddit web app
 - Python 3.10.4 
 - Docker or Poetry
