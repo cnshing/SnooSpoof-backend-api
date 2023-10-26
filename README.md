@@ -38,8 +38,8 @@ poetry install
 ```
 
 Then link the credentials and move to the source directory:
-```
-ln -s praw.ini ./src/SnooSpoof && cd ./src/SnooSpoof
+```bash
+ln -s "$PWD/praw.ini" ./src/SnooSpoof && cd ./src/SnooSpoof
 ```
 
 and execute the following command:
