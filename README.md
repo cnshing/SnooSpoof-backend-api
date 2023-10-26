@@ -23,8 +23,10 @@ user_agent=SnooSpoof read-only at https://github.com/cnshing/SnooSpoof-backend-a
 The fastest way to run the API is to build and run the Docker image.
 
 Run the following command to build and start the container:
-```
-docker compose run --build --service-ports --detach --env SNOOSPOOF_API_HOST=0.0.0.0 --env SNOOSPOOF_API_PORT=8123 api
+```bash
+export SNOOSPOOF_API_HOST=0.0.0.0
+export SNOOSPOOF_API_PORT=8123
+docker compose run --build --service-ports --detach api
 ```
 where SNOOSPOOF_API_HOST and SNOOSPOOF_API_PORT is the host and port of choice
 
