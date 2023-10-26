@@ -24,9 +24,9 @@ The fastest way to run the API is to build and run the Docker image.
 
 Run the following command to build and start the container:
 ```bash
-export SNOOSPOOF_API_HOST=0.0.0.0
-export SNOOSPOOF_API_PORT=8123
-docker compose run --build --service-ports --detach api
+SNOOSPOOF_API_HOST=0.0.0.0
+SNOOSPOOF_API_PORT=8123
+sudo docker compose run --build --service-ports --detach api
 ```
 where SNOOSPOOF_API_HOST and SNOOSPOOF_API_PORT is the host and port of choice
 
