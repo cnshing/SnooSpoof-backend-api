@@ -1,12 +1,12 @@
 """Train a dataset and output text
 """
+from numba import cuda
 from transformers import (
     PreTrainedModel, PreTrainedTokenizerFast,
     DataCollatorForLanguageModeling, TrainingArguments, Trainer,
     TextGenerationPipeline
 )
 from datasets import DatasetDict
-
 
 class TrainerExtension():
     """A very small wrapper of the Huggingface API to make training datasets more digestable
@@ -69,7 +69,6 @@ class TrainerExtension():
             str | list[str]: Batches of text if the arguments request multiple text,
             otherwise just a single text.
         """
-
         generator = TextGenerationPipeline(model=self.model,
                                            tokenizer=self.tokenizer,
                                            device='cuda:0')
@@ -77,6 +76,11 @@ class TrainerExtension():
         results = generator(initial_text)
 
         generated_text = [result['generated_text'] for result in results]
+
+        # GPU memory increases linearly with each text generation. 
+        # To prevent memory crashes, the cuda device must be reset.
+        device = cuda.get_current_device()
+        device.reset()
 
         if len(generated_text) == 1:
             return generated_text[0]
