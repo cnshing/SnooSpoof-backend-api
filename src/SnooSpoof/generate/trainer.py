@@ -1,6 +1,6 @@
 """Train a dataset and output text
 """
-from numba import cuda
+from copy import deepcopy
 from transformers import (
     PreTrainedModel, PreTrainedTokenizerFast,
     DataCollatorForLanguageModeling, TrainingArguments, Trainer,
@@ -14,6 +14,7 @@ class TrainerExtension():
 
     def __init__(self, model: PreTrainedModel, tokenizer: PreTrainedTokenizerFast):
         self.model = model
+        self._weights = deepcopy(model.state_dict())
         self.tokenizer = tokenizer
 
     def train(self, encoded_dataset: DatasetDict):
@@ -55,6 +56,11 @@ class TrainerExtension():
         )
         trainer.train()
 
+    def reset_model(self):
+        """Reset the model weights back to it's pretrained values.
+        """
+        self.model.load_state_dict(self._weights)
+
     def text(self,
              initial_text: str) -> str | list[str]:
         """Generate text based off an initial text.
@@ -77,10 +83,9 @@ class TrainerExtension():
 
         generated_text = [result['generated_text'] for result in results]
 
-        # GPU memory increases linearly with each text generation. 
-        # To prevent memory crashes, the cuda device must be reset.
-        device = cuda.get_current_device()
-        device.reset()
+        # To prevent previous finetuning from affecting future text generation,
+        # reset the model weights.
+        self.reset_model()
 
         if len(generated_text) == 1:
             return generated_text[0]

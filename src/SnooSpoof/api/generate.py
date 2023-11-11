@@ -2,7 +2,6 @@
 Responsible for combining every isolated component into one coherent piece for text generation
 """
 from typing import Any
-from copy import deepcopy
 import praw
 from transformers import PreTrainedTokenizer, PreTrainedModel
 from datasets import Dataset, DatasetDict
@@ -27,7 +26,7 @@ class Generator:
         self.scrapper = PRAWExtension(reddit=reddit)
         # Create a copy of the model because the model is mutated as it is trained
         self.trainer = TrainerExtension(
-            model=deepcopy(model), tokenizer=tokenizer)
+            model=model, tokenizer=tokenizer)
 
     def _fetch_data(self, username: str) -> list[dict[str, Any]]:
         """Fetches the raw data of a user.
